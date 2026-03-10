@@ -23,7 +23,7 @@ interface Note {
 
 interface NotesButtonProps {
   entityId: string;
-  entityType: 'servantee' | 'retreat';
+  entityType: 'servantees' | 'retreat';
 }
 
 export default function NotesButton({ entityId, entityType }: NotesButtonProps) {

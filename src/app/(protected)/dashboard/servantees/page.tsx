@@ -172,7 +172,7 @@ export default function ServanteesPage() {
                     <TableCell>
                       <div className="flex gap-1 justify-end">
                         <ServanteeDetailsDialog servanteeId={s._id} servanteeName={s.name} />
-                        <NotesButton entityId={s._id} entityType="servantee" />
+                        <NotesButton entityId={s._id} entityType="servantees" />
                         {isAdmin && (
                           <>
                             <EditServanteeDialog
@@ -231,7 +231,7 @@ export default function ServanteesPage() {
 
               <div className="flex gap-2 pt-1 border-t">
                 <ServanteeDetailsDialog servanteeId={s._id} servanteeName={s.name} />
-                <NotesButton entityId={s._id} entityType="servantee" />
+                <NotesButton entityId={s._id} entityType="servantees" />
                 {isAdmin && (
                   <>
                     <EditServanteeDialog servantee={s} onUpdated={fetchServantees} />
