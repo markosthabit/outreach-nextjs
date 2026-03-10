@@ -14,9 +14,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
+import { UserPlus } from 'lucide-react'
+
 const servanteeSchema = z.object({
   name: z.string().min(1, 'الإسم مطلوب'),
   phone: z.string().optional(),
@@ -27,6 +28,14 @@ const servanteeSchema = z.object({
 
 type ServanteeFormData = z.infer<typeof servanteeSchema>
 
+const fields: { key: keyof ServanteeFormData; label: string }[] = [
+  { key: 'name', label: 'الإسم' },
+  { key: 'phone', label: 'التليفون' },
+  { key: 'church', label: 'الكنيسة' },
+  { key: 'education', label: 'الدراسة' },
+  { key: 'year', label: 'الفرقة' },
+]
+
 export function AddServanteeDialog({ onAdded }: { onAdded: () => void }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -36,107 +45,60 @@ export function AddServanteeDialog({ onAdded }: { onAdded: () => void }) {
     defaultValues: { name: '', phone: '', church: '', education: '', year: '' },
   })
 
-const onSubmit = async (values: ServanteeFormData) => {
-  try {
-    setLoading(true)
-
-    const payload = {
-      ...values,
-    }
-
-    await apiFetch('/servantees', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-
-    toast.success('تم إضافة المخدوم بنجاح ✅', {
-      description: `الإسم: ${values.name}`,
-      duration: 3000,
-    })
-
-    form.reset()
-    setOpen(false)
-    onAdded() // refresh the table
-  } catch (err: any) {
-    console.error('Error adding servantee:', err)
-
-    let message = 'حدث خطأ أثناء الإضافة'
-    let statusCode = 0
-
+  const onSubmit = async (values: ServanteeFormData) => {
     try {
-      if (typeof err === 'string') {
-        const parsed = JSON.parse(err)
-        message = parsed.message || message
-        statusCode = parsed.statusCode || 0
-      } else if (err.message && err.message.startsWith('{')) {
-        const parsed = JSON.parse(err.message)
-        message = parsed.message || message
-        statusCode = parsed.statusCode || 0
-      } else if (err.statusCode) {
-        message = err.message || message
-        statusCode = err.statusCode
+      setLoading(true)
+      await apiFetch('/api/servantees', {
+        method: 'POST',
+        body: JSON.stringify(values),
+      })
+      toast.success('تم إضافة المخدوم بنجاح ✅', {
+        description: `الإسم: ${values.name}`,
+        duration: 3000,
+      })
+      form.reset()
+      setOpen(false)
+      onAdded()
+    } catch (err: any) {
+      if (err?.statusCode === 409) {
+        toast.error('رقم التليفون مستخدم بالفعل!')
+      } else {
+        toast.error(err?.message || 'حدث خطأ أثناء الإضافة')
       }
-    } catch {}
-
-    if (statusCode === 409) {
-      toast.error('رقم التليفون مستخدم بالفعل!')
-    } else {
-      toast.error(message)
+    } finally {
+      setLoading(false)
     }
-  } finally {
-    setLoading(false)
   }
-}
-
-
 
   return (
-    
     <Dialog open={open} onOpenChange={setOpen}>
-
       <DialogTrigger asChild>
-        <Button>إضافة مخدوم</Button>
+        <Button className="w-full sm:w-auto gap-2">
+          <UserPlus className="h-4 w-4" />
+          إضافة مخدوم
+        </Button>
       </DialogTrigger>
 
-      <DialogContent dir="rtl" className="max-w-md ">
+      <DialogContent dir="rtl" className="w-[95vw] max-w-md rounded-xl">
         <DialogHeader>
           <DialogTitle>إضافة مخدوم جديد</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-8">
-          <div>
-            <Label>الإسم</Label>
-            <Input className="mt-1" {...form.register('name')} />
-            {form.formState.errors.name && (
-              <p className="text-red-500 text-sm">{form.formState.errors.name.message}</p>
-            )}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
+          {/* 2-col grid on sm+, single col on mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {fields.map(({ key, label }) => (
+              <div key={key} className={key === 'name' ? 'sm:col-span-2' : ''}>
+                <Label className="text-sm">{label}</Label>
+                <Input className="mt-1" {...form.register(key)} />
+                {form.formState.errors[key] && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {form.formState.errors[key]?.message}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
-<div>
-  <Label>التليفون</Label>
-  <Input className="mt-2" {...form.register('phone')} />
-  {form.formState.errors.phone && (
-    <p className="text-red-500 text-sm">{form.formState.errors.phone.message}</p>
-  )}
-</div>
-
-
-          <div>
-            <Label>الكنيسة</Label>
-            <Input className="mt-2" {...form.register('church')} />
-          </div>
-
-          <div>
-            <Label>الدراسة</Label>
-            <Input className="mt-2" {...form.register('education')} />
-          </div>
-
-          <div>
-            <Label>الفرقة</Label>
-            <Input className="mt-2" {...form.register('year')} />
-          </div>
-
-
-
 
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? 'جاري الحفظ...' : 'إضافة'}

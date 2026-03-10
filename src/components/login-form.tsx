@@ -34,7 +34,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
   const onSubmit = async (data: LoginData) => {
     try {
-      const res = await apiFetch<{ access_token: string }>("/auth/login", {
+      const res = await apiFetch<{ access_token: string }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify(data),
       });

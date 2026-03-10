@@ -1,4 +1,4 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 
 // ---- Internal state for refresh coordination ----
@@ -10,7 +10,7 @@ let queuedRequests: (() => void)[] = [];
 async function refreshAccessToken() {
   if (!refreshPromise) {
     isRefreshing = true;
-    refreshPromise = fetch(`${API_URL}/auth/refresh`, {
+    refreshPromise = fetch(`${API_URL}/api/auth/refresh`, {
       method: "POST",
       credentials: "include",
     })
@@ -74,21 +74,17 @@ export async function apiFetch<T>(
  // ----- Handle other errors -----
 if (!res.ok) {
   let errorBody: any = null
+  const text = await res.text() // read once as text
   try {
-    // Try to parse as JSON
-    errorBody = await res.json()
+    errorBody = JSON.parse(text) // try to parse as JSON
   } catch {
-    // Fallback to plain text if not JSON
-    const text = await res.text()
     errorBody = { message: text, statusCode: res.status }
   }
 
-  // Attach the status code if missing
   if (!errorBody.statusCode) {
     errorBody.statusCode = res.status
   }
 
-  // Throw a structured error (not wrapped in Error())
   throw errorBody
 }
 

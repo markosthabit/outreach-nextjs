@@ -22,31 +22,16 @@ async function fetchDashboardData() {
   try {
     setLoading(true)
 
-    // Ask for all records (huge limit to bypass pagination)
     const [servanteesRes, retreatsRes, usersRes] = await Promise.all([
-      apiFetch('/servantees?page=1&limit=9999'),
-      apiFetch('/retreats?page=1&limit=9999'),
-      apiFetch('/users?page=1&limit=9999'),
+      apiFetch<{ servantees: any[] }>('/api/servantees'),
+      apiFetch<{ retreats: any[] }>('/api/retreats'),
+      apiFetch<{ users: any[] }>('/api/users'),
     ])
 
-    // Extract .data if paginated, otherwise use directly (safe with unknown)
-    const servantees = Array.isArray((servanteesRes as any)?.data)
-      ? (servanteesRes as any).data
-      : Array.isArray(servanteesRes)
-      ? (servanteesRes as any)
-      : []
-    const retreats = Array.isArray((retreatsRes as any)?.data)
-      ? (retreatsRes as any).data
-      : Array.isArray(retreatsRes)
-      ? (retreatsRes as any)
-      : []
-    const users = Array.isArray((usersRes as any)?.data)
-      ? (usersRes as any).data
-      : Array.isArray(usersRes)
-      ? (usersRes as any)
-      : []
+    const servantees = servanteesRes.servantees ?? []
+    const retreats = retreatsRes.retreats ?? []
+    const users = usersRes.users ?? []
 
-    // Count upcoming retreats
     const now = new Date()
     const upcoming = retreats.filter(
       (r: any) => r.startDate && new Date(r.startDate) > now

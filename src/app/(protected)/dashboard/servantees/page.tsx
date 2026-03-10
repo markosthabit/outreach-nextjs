@@ -1,20 +1,19 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
 import { Card } from '@/components/ui/card'
-import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { AddServanteeDialog } from './add-servantee-dialog'
 import { EditServanteeDialog } from './edit-servantee-dialog'
@@ -23,6 +22,7 @@ import ServanteeDetailsDialog from './servantee-details-dialog'
 import NotesButton from '@/components/shared/notes-button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDebounce } from '@/hooks/use-debounce'
+import { Users, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Servantee {
   _id: string
@@ -36,179 +36,241 @@ interface Servantee {
   notes: string[]
 }
 
+const PAGE_SIZE = 10
+
 export default function ServanteesPage() {
-   const { user } = useAuth();
-  const isAdmin = user!.role==='Admin';
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'Admin'
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const [servantees, setServantees] = useState<Servantee[]>([])
-  const [loading, setLoading] = useState(false)
+
+  const [allServantees, setAllServantees] = useState<Servantee[]>([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
-  const [limit] = useState(10)
-  const [hasMore, setHasMore] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-const [totalResults, setTotalResults] = useState(0)
+  const debouncedSearch = useDebounce(searchTerm, 400)
 
-  // Debounced search term
-  const debouncedSearchTerm = useDebounce(searchTerm, 500)
-
-  // Focus management - focus after search completes
-  useEffect(() => {
-    if (!loading && searchInputRef.current) {
-      searchInputRef.current.focus()
-    }
-  }, [loading])
-
-  // Fetch data when page or debouncedSearchTerm changes
-  const fetchServantees = useCallback(async (pageNumber = page, search = debouncedSearchTerm) => {
+  // ── Fetch all servantees once ──────────────────────────────
+  const fetchServantees = useCallback(async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({
-        page: pageNumber.toString(),
-        limit: limit.toString(),
-        ...(search ? { search } : {})
-      })
-
-      const data: any = await apiFetch(`/servantees?${params.toString()}`)
-      setServantees(data.data || data)
-      setHasMore(!data.pages || pageNumber < data.pages)
-      setTotalResults(data.total || 0) 
-
+      const res = await apiFetch<{ servantees: Servantee[] }>('/api/servantees')
+      setAllServantees(res.servantees ?? [])
     } catch (err: any) {
       console.error(err)
       setError(err.message || 'حدث خطأ أثناء تحميل البيانات')
     } finally {
       setLoading(false)
     }
-  }, [page, limit, debouncedSearchTerm])
+  }, [])
 
   useEffect(() => {
-    fetchServantees(page, debouncedSearchTerm)
-  }, [page, debouncedSearchTerm, fetchServantees])
+    fetchServantees()
+  }, [fetchServantees])
 
-  // Reset page to 1 when search changes
-  useEffect(() => {
-    setPage(1)
-  }, [debouncedSearchTerm])
+  // ── Client-side search ─────────────────────────────────────
+  const filtered = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase()
+    if (!q) return allServantees
+    return allServantees.filter(
+      (s) =>
+        s.name?.toLowerCase().includes(q) ||
+        s.phone?.toLowerCase().includes(q) ||
+        s.church?.toLowerCase().includes(q)
+    )
+  }, [allServantees, debouncedSearch])
 
+  // ── Reset page on search change ────────────────────────────
+  useEffect(() => { setPage(1) }, [debouncedSearch])
+
+  // ── Client-side pagination ─────────────────────────────────
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  // ── Handlers ───────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     try {
-      await apiFetch(`/servantees/${id}`, { method: 'DELETE' })
+      await apiFetch(`/api/servantees/${id}`, { method: 'DELETE' })
       toast.success('تم حذف المخدوم بنجاح')
-      fetchServantees(page, debouncedSearchTerm)
+      setAllServantees((prev) => prev.filter((s) => s._id !== id))
     } catch (err: any) {
-      console.error(err)
       toast.error('حدث خطأ أثناء الحذف')
     }
   }
 
-  // Handle search input change without causing full re-render
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-  }
+  // ── States ─────────────────────────────────────────────────
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-muted-foreground animate-pulse">جاري التحميل...</p>
+    </div>
+  )
 
-  // Handle search form submission
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // The search is already handled by the useEffect with debouncedSearchTerm
-  }
-
-  if (loading && servantees.length === 0) return <p className="p-4">جاري التحميل...</p>
-  if (error) return <p className="p-4 text-red-500">{error}</p>
+  if (error) return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-red-500">{error}</p>
+    </div>
+  )
 
   return (
-    <div className="p-6 space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">المخدومين</h1>
-        <AddServanteeDialog onAdded={() => fetchServantees(1, debouncedSearchTerm)} />
+    <div className="p-4 lg:p-6 space-y-6" dir="rtl">
+
+      {/* ── Header ── */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Users className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-semibold">المخدومين</h1>
+          <Badge variant="secondary" className="text-xs">
+            {filtered.length}
+          </Badge>
+        </div>
+        <AddServanteeDialog onAdded={fetchServantees} />
       </div>
 
-      {/* Search - Prevent default form behavior */}
-      <form onSubmit={handleSearchSubmit} className="flex gap-3 sm:w-1/2">
+      {/* ── Search ── */}
+      <div className="relative w-full lg:w-96">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           ref={searchInputRef}
-          placeholder="🔍 ابحث بالاسم أو التليفون أو الكنيسة..."
+          placeholder="ابحث بالاسم أو التليفون أو الكنيسة..."
           value={searchTerm}
-          onChange={handleSearchChange}
-          type="text"
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pr-9"
         />
-      </form>
+      </div>
 
-      {/* Loading state without replacing entire table */}
-      {loading && servantees.length > 0 && (
-        <div className="flex justify-center py-4">
-          <p>جاري التحميل...</p>
+      {/* ── Table (desktop) / Cards (mobile) ── */}
+
+      {/* Desktop Table */}
+      <Card className="hidden lg:block shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table className="min-w-full text-right">
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="text-right">الإسم</TableHead>
+                <TableHead className="text-right">التليفون</TableHead>
+                <TableHead className="text-right">الكنيسة</TableHead>
+                <TableHead className="text-right">الكلية</TableHead>
+                <TableHead className="text-right">الفرقة</TableHead>
+                <TableHead className="text-right w-[140px]">الإجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginated.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                    لا يوجد مخدومين
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginated.map((s) => (
+                  <TableRow key={s._id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="font-medium">{s.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{s.phone || '-'}</TableCell>
+                    <TableCell>{s.church || '-'}</TableCell>
+                    <TableCell>{s.education || '-'}</TableCell>
+                    <TableCell>{s.year || '-'}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 justify-end">
+                        <ServanteeDetailsDialog servanteeId={s._id} servanteeName={s.name} />
+                        <NotesButton entityId={s._id} entityType="servantee" />
+                        {isAdmin && (
+                          <>
+                            <EditServanteeDialog
+                              servantee={s}
+                              onUpdated={fetchServantees}
+                            />
+                            <ConfirmDeleteDialog
+                              onConfirm={() => handleDelete(s._id)}
+                              title="حذف مخدوم"
+                              description="هل أنت متأكد أنك ترغب في حذف هذا المخدوم؟ لن يمكنك استرجاع البيانات مرة أخرى."
+                              triggerLabel="حذف"
+                            />
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
-      )}
+      </Card>
 
-      {/* Table */}
-      <Card className="p-4 shadow-sm overflow-x-auto">
-        <Table className="min-w-full text-right border-collapse">
-          <TableCaption>
-            {servantees.length === 0 && !loading
-              ? 'لا يوجد مخدومين'
-              : `عدد النتائج: ${totalResults}`}
-          </TableCaption>
+      {/* Mobile Cards */}
+      <div className="lg:hidden space-y-3">
+        {paginated.length === 0 ? (
+          <p className="text-center text-muted-foreground py-12">لا يوجد مخدومين</p>
+        ) : (
+          paginated.map((s) => (
+            <Card key={s._id} className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-base">{s.name}</p>
+                  <p className="text-sm text-muted-foreground">{s.phone || '-'}</p>
+                </div>
+                <Badge variant={s.isActive ? 'default' : 'secondary'} className="text-xs shrink-0">
+                  {s.isActive ? 'نشط' : 'غير نشط'}
+                </Badge>
+              </div>
 
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="text-right">الإسم</TableHead>
-              <TableHead className="text-right">التليفون</TableHead>
-              <TableHead className="text-right">الكنيسة</TableHead>
-              <TableHead className="text-right">الكلية</TableHead>
-              <TableHead className="text-right">الفرقة</TableHead>
-              <TableHead className="text-right w-[100px]">الإجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">الكنيسة</p>
+                  <p>{s.church || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">الكلية</p>
+                  <p>{s.education || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">الفرقة</p>
+                  <p>{s.year || '-'}</p>
+                </div>
+              </div>
 
-          <TableBody>
-            {servantees.map((s) => (
-              <TableRow key={s._id}>
-                <TableCell className="font-medium">{s.name}</TableCell>
-                <TableCell>{s.phone || '-'}</TableCell>
-                <TableCell>{s.church || '-'}</TableCell>
-                <TableCell>{s.education || '-'}</TableCell>
-                <TableCell>
-                  {s.year }
-                </TableCell>
-
-                <TableCell className="flex gap-2 justify-end">
-                    <ServanteeDetailsDialog servanteeId={s._id} servanteeName={s.name} />
-                  <NotesButton entityId={s._id} entityType="servantee" />
-                  {isAdmin ? (
-                    <><EditServanteeDialog servantee={s} onUpdated={() => fetchServantees(page, debouncedSearchTerm)} /><ConfirmDeleteDialog
+              <div className="flex gap-2 pt-1 border-t">
+                <ServanteeDetailsDialog servanteeId={s._id} servanteeName={s.name} />
+                <NotesButton entityId={s._id} entityType="servantee" />
+                {isAdmin && (
+                  <>
+                    <EditServanteeDialog servantee={s} onUpdated={fetchServantees} />
+                    <ConfirmDeleteDialog
                       onConfirm={() => handleDelete(s._id)}
                       title="حذف مخدوم"
                       description="هل أنت متأكد أنك ترغب في حذف هذا المخدوم؟ لن يمكنك استرجاع البيانات مرة أخرى."
-                      triggerLabel="حذف" /></>
-                  ) : (<></>)}
-                    
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+                      triggerLabel="حذف"
+                    />
+                  </>
+                )}
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
 
-      {/* Pagination Controls */}
-      <div className="flex justify-center gap-4 mt-4">
+      {/* ── Pagination ── */}
+      <div className="flex items-center justify-center gap-4">
         <Button
-          type='button'
           variant="outline"
+          size="sm"
           onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1 || loading}
+          disabled={page === 1}
         >
-          ⬅️ السابق
+          <ChevronRight className="h-4 w-4 ml-1" />
+          السابق
         </Button>
-        <span className="self-center font-medium">الصفحة {page}</span>
+        <span className="text-sm text-muted-foreground">
+          {page} / {totalPages}
+        </span>
         <Button
-          type='button'
           variant="outline"
-          onClick={() => setPage((p) => p + 1)}
-          disabled={!hasMore || loading}
+          size="sm"
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={page >= totalPages}
         >
-          التالي ➡️
+          التالي
+          <ChevronLeft className="h-4 w-4 mr-1" />
         </Button>
       </div>
     </div>
