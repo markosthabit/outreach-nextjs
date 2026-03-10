@@ -40,7 +40,7 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
     setLoading(true);
     try {
       const data = await apiFetch<Note[]>(
-        `/notes/${entityType}/${entityId}`,
+        `api/notes/${entityType}/${entityId}`,
       );
         setNotes(data);
         console.log("notes loaded!")
@@ -60,7 +60,7 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
   async function handleCreate() {
     if (!newNote.trim()) return;
     try {
-      await apiFetch('/notes', {
+      await apiFetch('api/notes', {
         method: 'POST',
         body: JSON.stringify({
           content: newNote,
@@ -82,7 +82,7 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
   // --- Delete Note ---
   async function handleDelete(id: string) {
     try {
-      await apiFetch(`/notes/${id}`, { method: 'DELETE' });
+      await apiFetch(`api/notes/${id}`, { method: 'DELETE' });
       setNotes((prev) => prev.filter((n) => n._id !== id));
     } catch (err) {
         console.log("id: ", id)
@@ -94,7 +94,7 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
   async function handleUpdate() {
     if (!editingNote) return;
     try {
-      await apiFetch(`/notes/${editingNote._id}`, {
+      await apiFetch(`api/notes/${editingNote._id}`, {
         method: 'PATCH',
         body: JSON.stringify({ content: editedContent }),
       });
