@@ -1,3 +1,4 @@
+// lib/db.ts
 import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI!;
@@ -6,8 +7,6 @@ if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable');
 }
 
-// This is the key — we cache the connection on the global object
-// so it survives hot reloads in dev and is reused across serverless invocations
 declare global {
   var mongoose: { conn: mongoose.Connection | null; promise: Promise<mongoose.Connection> | null };
 }
@@ -28,5 +27,16 @@ export async function connectDB() {
   }
 
   cached.conn = await cached.promise;
+
+  // ── Force all models to register by importing them ──
+  // This ensures populate() works regardless of which
+  // API route is invoked by Vercel
+  await Promise.all([
+    import('@/models/user.model'),
+    import('@/models/servantee.model'),
+    import('@/models/retreat.model'),
+    import('@/models/note.model'),
+  ])
+
   return cached.conn;
 }
