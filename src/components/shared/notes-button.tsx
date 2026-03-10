@@ -2,15 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { ConfirmDeleteDialog } from './delete-dialog';
 
@@ -23,8 +19,14 @@ interface Note {
 
 interface NotesButtonProps {
   entityId: string;
-  entityType: 'servantees' | 'retreat';
+  entityType: 'servantee' | 'retreat'; // singular — used for body key
 }
+
+// Maps entityType to its API path segment (plural) and body key (singular)
+const ENTITY_MAP = {
+  servantee: { path: 'servantees', bodyKey: 'servanteeId' },
+  retreat:   { path: 'retreats',   bodyKey: 'retreatId'   },
+} as const
 
 export default function NotesButton({ entityId, entityType }: NotesButtonProps) {
   const [open, setOpen] = useState(false);
@@ -34,19 +36,18 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [editedContent, setEditedContent] = useState('');
 
-  // --- Fetch Notes ---
+  const { path, bodyKey } = ENTITY_MAP[entityType]
+
   async function fetchNotes() {
     if (!entityId) return;
     setLoading(true);
     try {
-      const data = await apiFetch<Note[]>(
-        `/api/notes/${entityType}/${entityId}`,
+      const res = await apiFetch<{ notes: Note[] }>(
+        `/api/notes/${path}/${entityId}`
       );
-        setNotes(data);
-        console.log("notes loaded!")
+      setNotes(res.notes ?? []);
     } catch (err) {
-        console.error('Failed to load notes', err);
-        console.log(err)
+      console.error('Failed to load notes', err);
     } finally {
       setLoading(false);
     }
@@ -56,7 +57,6 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
     if (open) fetchNotes();
   }, [open]);
 
-  // --- Create Note ---
   async function handleCreate() {
     if (!newNote.trim()) return;
     try {
@@ -64,33 +64,25 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
         method: 'POST',
         body: JSON.stringify({
           content: newNote,
-          [`${entityType}Id`]: entityId,
+          [bodyKey]: entityId,
         }),
       });
       setNewNote('');
       fetchNotes();
     } catch (err) {
-        console.error('Create note failed', err);
-        console.log(JSON.stringify({
-          content: newNote,
-          [`${entityType}Id`]: entityId,
-        }))
-        console.log(err)
+      console.error('Create note failed', err);
     }
   }
 
-  // --- Delete Note ---
   async function handleDelete(id: string) {
     try {
       await apiFetch(`/api/notes/${id}`, { method: 'DELETE' });
       setNotes((prev) => prev.filter((n) => n._id !== id));
     } catch (err) {
-        console.log("id: ", id)
       console.error('Delete note failed', err);
     }
   }
 
-  // --- Update Note ---
   async function handleUpdate() {
     if (!editingNote) return;
     try {
@@ -112,17 +104,21 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg" dir="rtl">
           <DialogHeader>
             <DialogTitle>ملاحظات</DialogTitle>
           </DialogHeader>
 
           {loading ? (
-            <p className="text-center text-sm text-muted-foreground">جاري التحميل...</p>
+            <p className="text-center text-sm text-muted-foreground animate-pulse">
+              جاري التحميل...
+            </p>
           ) : (
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {notes.length === 0 ? (
-                <p className="text-center text-muted-foreground">لا توجد ملاحظات بعد</p>
+                <p className="text-center text-muted-foreground py-6">
+                  لا توجد ملاحظات بعد
+                </p>
               ) : (
                 notes.map((note) => (
                   <div
@@ -137,14 +133,8 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
                           rows={3}
                         />
                         <div className="flex justify-end gap-2 mt-2">
-                          <Button size="sm" onClick={handleUpdate}>
-                            حفظ
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingNote(null)}
-                          >
+                          <Button size="sm" onClick={handleUpdate}>حفظ</Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingNote(null)}>
                             إلغاء
                           </Button>
                         </div>
@@ -163,20 +153,16 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => {
-                              setEditingNote(note);
-                              setEditedContent(note.content);
-                            }}
+                            onClick={() => { setEditingNote(note); setEditedContent(note.content) }}
                           >
                             <Pencil className="w-4 h-4" />
-                                        </Button>
-                                        <ConfirmDeleteDialog
-                                              onConfirm={() => handleDelete(note._id)}
-                                              title="حذف ملحوظة"
-                                              description="هل أنت متأكد أنك ترغب في حذف هذه الملحوظة؟ لن يمكنك استرجاع البيانات مرة أخرى."
-                                              triggerLabel="حذف"
-                                            />
-
+                          </Button>
+                          <ConfirmDeleteDialog
+                            onConfirm={() => handleDelete(note._id)}
+                            title="حذف ملحوظة"
+                            description="هل أنت متأكد أنك ترغب في حذف هذه الملحوظة؟"
+                            triggerLabel="حذف"
+                          />
                         </div>
                       </>
                     )}

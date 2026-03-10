@@ -218,7 +218,7 @@ function FocusedRetreatCard({
                       <TableCell>{a.phone}</TableCell>
                       <TableCell>
                         <div className="flex gap-1 justify-end">
-                          <NotesButton entityId={a.id} entityType="servantees" />
+                          <NotesButton entityId={a.id} entityType="servantee" />
                           <ConfirmDeleteDialog
                             onConfirm={() => onRemoveAttendee(a.id)}
                             title="حذف مخدوم"
@@ -247,7 +247,7 @@ function FocusedRetreatCard({
                   <p className="text-xs text-muted-foreground">{a.phone}</p>
                 </div>
                 <div className="flex gap-1">
-                  <NotesButton entityId={a.id} entityType="servantees" />
+                  <NotesButton entityId={a.id} entityType="servantee" />
                   <ConfirmDeleteDialog
                     onConfirm={() => onRemoveAttendee(a.id)}
                     title="حذف مخدوم"
