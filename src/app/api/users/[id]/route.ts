@@ -40,24 +40,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const authUser = await getAuthUser(req)
     const { id } = await params
 
-    // Admins can update any user, servants can only update themselves
     if (authUser?.role !== UserRole.ADMIN && authUser?.sub !== id) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
     }
 
     const body = await req.json()
 
-    // Prevent non-admins from escalating their own role
     if (body.role && authUser?.role !== UserRole.ADMIN) {
-      return NextResponse.json(
-        { message: 'Only admins can change roles' },
-        { status: 403 }
-      )
+      return NextResponse.json({ message: 'Only admins can change roles' }, { status: 403 })
     }
 
-    // If password is being updated, hash it
-    if (body.password) {
+    // Only hash password if it's a non-empty string
+    if (body.password && body.password.trim() !== '') {
       body.password = await bcrypt.hash(body.password, 10)
+    } else {
+      // Remove password from update if empty so Mongoose doesn't validate it
+      delete body.password
     }
 
     const user = await User.findByIdAndUpdate(id, body, { new: true, runValidators: true })
