@@ -25,14 +25,14 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
     let hasMore = true
 
     while (hasMore) {
-      const data: any = await apiFetch(`/servantees?page=${page}&limit=${limit}`)
+      const data: any = await apiFetch(`/api/servantees?page=${page}&limit=${limit}`)
       if (!data.data || data.data.length === 0) break
       allServantees = [...allServantees, ...data.data]
       hasMore = data.pages && page < data.pages
       page++
     }
 
-    const retreat: any = await apiFetch(`/retreats/${retreatId}`)
+    const retreat: any = await apiFetch(`/api/retreats/${retreatId}`)
     const attendeeIds = (retreat.attendees || []).map((a: any) =>
       typeof a === "string" ? a : a._id
     )
