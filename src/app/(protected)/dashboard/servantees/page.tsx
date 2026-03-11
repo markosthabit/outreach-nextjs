@@ -209,9 +209,9 @@ export default function ServanteesPage() {
                   <p className="font-semibold text-base">{s.name}</p>
                   <p className="text-sm text-muted-foreground">{s.phone || '-'}</p>
                 </div>
-                <Badge variant={s.isActive ? 'default' : 'secondary'} className="text-xs shrink-0">
+                {/* <Badge variant={s.isActive ? 'default' : 'secondary'} className="text-xs shrink-0">
                   {s.isActive ? 'نشط' : 'غير نشط'}
-                </Badge>
+                </Badge> */}
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-sm">
@@ -229,7 +229,7 @@ export default function ServanteesPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-1 border-t">
+              <div className="flex gap-2 flex-wrap pt-1 border-t">
                 <ServanteeDetailsDialog servanteeId={s._id} servanteeName={s.name} />
                 <NotesButton entityId={s._id} entityType="servantee" />
                 {isAdmin && (
