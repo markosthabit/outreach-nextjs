@@ -18,27 +18,19 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
   const [loadingPdf, setLoadingPdf] = useState(false)
   const [loadingExcel, setLoadingExcel] = useState(false)
 
-  async function getMissingServantees() {
-    let page = 1
-    const limit = 100
-    let allServantees: any[] = []
-    let hasMore = true
+ async function getMissingServantees() {
+  // Fetch all servantees in one call — no pagination needed
+  const res = await apiFetch<{ servantees: any[] }>('/api/servantees')
+  const allServantees = res.servantees ?? []
 
-    while (hasMore) {
-      const data: any = await apiFetch(`/api/servantees?page=${page}&limit=${limit}`)
-      if (!data.data || data.data.length === 0) break
-      allServantees = [...allServantees, ...data.data]
-      hasMore = data.pages && page < data.pages
-      page++
-    }
+  // Extract the retreat object correctly
+  const retreatRes = await apiFetch<{ retreat: any }>(`/api/retreats/${retreatId}`)
+  const attendeeIds = (retreatRes.retreat?.attendees || []).map((a: any) =>
+    typeof a === 'string' ? a : a._id
+  )
 
-    const retreat: any = await apiFetch(`/api/retreats/${retreatId}`)
-    const attendeeIds = (retreat.attendees || []).map((a: any) =>
-      typeof a === "string" ? a : a._id
-    )
-
-    return allServantees.filter((s) => !attendeeIds.includes(s._id))
-  }
+  return allServantees.filter((s) => !attendeeIds.includes(s._id))
+}
 
   const handleGeneratePDF = async () => {
     try {
