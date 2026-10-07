@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +22,7 @@ type LoginData = z.infer<typeof loginSchema>;
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const { login } = useAuth();
+  const [isMounted, setIsMounted] = useState(false);
 
   const {
     register,
@@ -29,6 +31,18 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   } = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
   });
+
+  // Strip sensitive query params from URL if previously submitted via GET
+  useEffect(() => {
+    setIsMounted(true);
+    if (typeof window !== "undefined" && window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("email") || params.has("password")) {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, "", cleanUrl);
+      }
+    }
+  }, []);
 
   const onSubmit = async (data: LoginData) => {
     try {
@@ -45,7 +59,15 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form onSubmit={handleSubmit(onSubmit)} className="p-6 md:p-8 space-y-4">
+          <form
+            method="POST"
+            action=""
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit(onSubmit)(e);
+            }}
+            className="p-6 md:p-8 space-y-4"
+          >
             <div className="flex flex-col items-center gap-2 text-center mb-6">
               <h1 className="text-2xl font-bold">سلام ونعمة</h1>
               <p className="text-muted-foreground text-balance">سجل الدخول لحسابك</p>
@@ -57,6 +79,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="m@example.com"
                   {...register("email")}
                   required
@@ -68,13 +91,18 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                 <Input
                   id="password"
                   type="password"
+                  autoComplete="current-password"
                   {...register("password")}
                   required
                 />
               </Field>
 
               <Field>
-                <Button type="submit" disabled={isSubmitting} className="w-full">
+                <Button
+                  type="submit"
+                  disabled={!isMounted || isSubmitting}
+                  className="w-full"
+                >
                   {isSubmitting ? "جارٍ الدخول..." : "تسجيل الدخول"}
                 </Button>
               </Field>
