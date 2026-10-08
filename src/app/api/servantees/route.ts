@@ -9,11 +9,22 @@ export async function GET(req: NextRequest) {
     await connectDB()
 
     const servantees = await Servantee.find()
-      .populate('retreats', 'name location startDate endDate')
       .populate('createdBy', 'name email')
       .populate('updatedBy', 'name email')
+      .lean()
 
-    return NextResponse.json({ servantees })
+    const { Retreat } = await import('@/models/retreat.model')
+    const allRetreats = await Retreat.find().select('name location startDate endDate attendees').lean()
+
+    const servanteesWithRetreats = servantees.map((s: any) => {
+      const sId = s._id.toString()
+      const attended = allRetreats.filter((r: any) => 
+        r.attendees && r.attendees.some((a: any) => a.toString() === sId)
+      )
+      return { ...s, retreats: attended }
+    })
+
+    return NextResponse.json({ servantees: servanteesWithRetreats })
   } catch (error) {
     console.error('[GET /servantees]', error)
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 })

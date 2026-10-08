@@ -14,13 +14,20 @@ export async function GET(
     const { id } = await params
 
     const servantee = await Servantee.findById(id)
-      .populate('retreats', 'name location startDate endDate')
       .populate('createdBy', 'name email')
       .populate('updatedBy', 'name email')
+      .lean()
 
     if (!servantee) {
       return NextResponse.json({ message: 'Servantee not found' }, { status: 404 })
     }
+
+    const { Retreat } = await import('@/models/retreat.model')
+    const attendedRetreats = await Retreat.find({ attendees: id })
+      .select('name location startDate endDate')
+      .lean()
+
+    servantee.retreats = attendedRetreats
 
     return NextResponse.json({ servantee })
   } catch (error) {

@@ -22,7 +22,8 @@ import ServanteeDetailsDialog from './servantee-details-dialog'
 import NotesButton from '@/components/shared/notes-button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDebounce } from '@/hooks/use-debounce'
-import { Users, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, Search, ChevronLeft, ChevronRight, AlertTriangle, UserMinus } from 'lucide-react'
+import { Toggle } from '@/components/ui/toggle'
 import { IconBrandWhatsapp } from '@tabler/icons-react'
 
 interface Servantee {
@@ -37,6 +38,7 @@ interface Servantee {
   year: string
   isActive: boolean
   notes: string[]
+  retreats?: { _id: string; startDate: string; endDate: string }[]
 }
 
 const PAGE_SIZE = 10
@@ -51,7 +53,22 @@ export default function ServanteesPage() {
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
+  const [showOnlyInactive, setShowOnlyInactive] = useState(false)
   const debouncedSearch = useDebounce(searchTerm, 400)
+
+  // ── Helper ─────────────────────────────────────────────────
+  const isInactive = useCallback((s: Servantee) => {
+    if (!s.retreats || s.retreats.length === 0) return true
+    
+    const latestRetreat = s.retreats.reduce((latest, current) => {
+      return new Date(current.startDate) > new Date(latest.startDate) ? current : latest
+    }, s.retreats[0])
+
+    const threeMonthsAgo = new Date()
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+
+    return new Date(latestRetreat.startDate) < threeMonthsAgo
+  }, [])
 
   // ── Fetch all servantees once ──────────────────────────────
   const fetchServantees = useCallback(async () => {
@@ -71,20 +88,27 @@ export default function ServanteesPage() {
     fetchServantees()
   }, [fetchServantees])
 
-  // ── Client-side search ─────────────────────────────────────
+  // ── Client-side search & filter ────────────────────────────
   const filtered = useMemo(() => {
+    let result = allServantees
+
+    if (showOnlyInactive) {
+      result = result.filter(isInactive)
+    }
+
     const q = debouncedSearch.trim().toLowerCase()
-    if (!q) return allServantees
-    return allServantees.filter(
+    if (!q) return result
+
+    return result.filter(
       (s) =>
         s.name?.toLowerCase().includes(q) ||
         s.phone?.toLowerCase().includes(q) ||
         s.church?.toLowerCase().includes(q)
     )
-  }, [allServantees, debouncedSearch])
+  }, [allServantees, debouncedSearch, showOnlyInactive, isInactive])
 
-  // ── Reset page on search change ────────────────────────────
-  useEffect(() => { setPage(1) }, [debouncedSearch])
+  // ── Reset page on filter change ────────────────────────────
+  useEffect(() => { setPage(1) }, [debouncedSearch, showOnlyInactive])
 
   // ── Client-side pagination ─────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -129,16 +153,27 @@ export default function ServanteesPage() {
         <AddServanteeDialog onAdded={fetchServantees} />
       </div>
 
-      {/* ── Search ── */}
-      <div className="relative w-full lg:w-96">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          ref={searchInputRef}
-          placeholder="ابحث بالاسم أو التليفون أو الكنيسة..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pr-9"
-        />
+      {/* ── Search & Filters ── */}
+      <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+        <div className="relative w-full lg:w-96 flex-shrink-0">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            ref={searchInputRef}
+            placeholder="ابحث بالاسم أو التليفون أو الكنيسة..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pr-9"
+          />
+        </div>
+        <Toggle
+          pressed={showOnlyInactive}
+          onPressedChange={setShowOnlyInactive}
+          variant="outline"
+          className="gap-2 data-[state=on]:bg-amber-100 data-[state=on]:text-amber-900 dark:data-[state=on]:bg-amber-900/30 dark:data-[state=on]:text-amber-300"
+        >
+          <UserMinus className="h-4 w-4" />
+          المنقطعين
+        </Toggle>
       </div>
 
       {/* ── Table (desktop) / Cards (mobile) ── */}
@@ -169,7 +204,14 @@ export default function ServanteesPage() {
               ) : (
                 paginated.map((s) => (
                   <TableRow key={s._id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="font-medium">{s.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {s.name}
+                        {isInactive(s) && (
+                          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" title="لم يحضر خلوة منذ 3 أشهر" />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       <div className="flex items-center gap-2">
                         {s.phone || '-'}
@@ -228,7 +270,12 @@ export default function ServanteesPage() {
             <Card key={s._id} className="p-4 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold text-base">{s.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-base">{s.name}</p>
+                    {isInactive(s) && (
+                      <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" title="لم يحضر خلوة منذ 3 أشهر" />
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-muted-foreground">{s.phone || '-'}</p>
                     {s.phone && (
