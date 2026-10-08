@@ -16,6 +16,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { AddServanteeDialog } from './add-servantee-dialog'
+import { ImportServanteesDialog } from './import-servantees-dialog'
 import { EditServanteeDialog } from './edit-servantee-dialog'
 import { ConfirmDeleteDialog } from '@/components/shared/delete-dialog'
 import ServanteeDetailsDialog from './servantee-details-dialog'
@@ -85,7 +86,6 @@ export default function ServanteesPage() {
   // ── Fetch all servantees once ──────────────────────────────
   const fetchServantees = useCallback(async () => {
     try {
-      setLoading(true)
       const res = await apiFetch<{ servantees: Servantee[] }>('/api/servantees')
       setAllServantees(res.servantees ?? [])
     } catch (err: any) {
@@ -166,7 +166,10 @@ export default function ServanteesPage() {
             {filtered.length}
           </Badge>
         </div>
-        <AddServanteeDialog onAdded={fetchServantees} />
+        <div className="flex gap-2">
+          {isAdmin && <ImportServanteesDialog onImported={fetchServantees} />}
+          <AddServanteeDialog onAdded={fetchServantees} />
+        </div>
       </div>
 
       {/* ── Search & Filters ── */}
