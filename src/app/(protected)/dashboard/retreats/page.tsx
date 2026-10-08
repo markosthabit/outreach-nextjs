@@ -23,6 +23,7 @@ import { Pencil, CalendarDays, MapPin, Users, ChevronLeft, ChevronRight, X, Cloc
 import NotesButton from '@/components/shared/notes-button'
 import GenerateMissingServantees from './generate-missing-servantees'
 import { GenerateAttendeesReport } from './generate-attendees-report'
+import { AddServanteeDialog } from '../servantees/add-servantee-dialog'
 
 // ---------- Types ----------
 type Servantee = { _id: string; name: string; phone?: string }
@@ -105,12 +106,20 @@ function AttendeePicker({ retreatId, onAdded }: { retreatId: string; onAdded: ()
 
   return (
     <Card className="p-4 space-y-3">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-center gap-2">
         <Input
           placeholder="ابحث عن مخدوم..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          className="flex-1"
         />
+        <AddServanteeDialog onAdded={() => {
+           apiFetch<{ servantees: Servantee[] }>('/api/servantees')
+             .then((res) => {
+               setAllServantees(res.servantees ?? [])
+               toast.success('تم التحديث: يمكنك الآن البحث عن المخدوم الجديد وإضافته للخلوة')
+             })
+        }} />
       </div>
 
       {results.length > 0 && (
