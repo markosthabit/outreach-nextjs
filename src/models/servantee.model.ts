@@ -3,7 +3,8 @@ import mongoose, { HydratedDocument, Schema, Types } from 'mongoose';
 export interface IServantee {
   phone: string;
   name: string;
-  birthDate?: Date;
+  birthDate?: Date | null;
+  diocese?: string | null;
   education?: string;
   year?: string;
   church?: string;
@@ -21,7 +22,8 @@ const ServanteeSchema = new Schema<IServantee>(
   {
     phone: { type: String, required: true, unique: true },
     name: { type: String, required: true },
-    birthDate: { type: Date },
+    birthDate: { type: Date, default: null },
+    diocese: { type: String, default: null },
     education: { type: String },
     year: { type: String },
     church: { type: String },

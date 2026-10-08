@@ -21,6 +21,8 @@ import { UserPlus } from 'lucide-react'
 const servanteeSchema = z.object({
   name: z.string().min(1, 'الإسم مطلوب'),
   phone: z.string().optional(),
+  diocese: z.string().optional(),
+  birthDate: z.string().optional(),
   church: z.string().optional(),
   education: z.string().optional(),
   year: z.string().optional(),
@@ -31,6 +33,8 @@ type ServanteeFormData = z.infer<typeof servanteeSchema>
 const fields: { key: keyof ServanteeFormData; label: string }[] = [
   { key: 'name', label: 'الإسم' },
   { key: 'phone', label: 'التليفون' },
+  { key: 'diocese', label: 'الأبرشية' },
+  { key: 'birthDate', label: 'تاريخ الميلاد' },
   { key: 'church', label: 'الكنيسة' },
   { key: 'education', label: 'الدراسة' },
   { key: 'year', label: 'الفرقة' },
@@ -42,7 +46,7 @@ export function AddServanteeDialog({ onAdded }: { onAdded: () => void }) {
 
   const form = useForm<ServanteeFormData>({
     resolver: zodResolver(servanteeSchema),
-    defaultValues: { name: '', phone: '', church: '', education: '', year: '' },
+    defaultValues: { name: '', phone: '', diocese: '', birthDate: '', church: '', education: '', year: '' },
   })
 
   const onSubmit = async (values: ServanteeFormData) => {
@@ -90,7 +94,7 @@ export function AddServanteeDialog({ onAdded }: { onAdded: () => void }) {
             {fields.map(({ key, label }) => (
               <div key={key} className={key === 'name' ? 'sm:col-span-2' : ''}>
                 <Label className="text-sm">{label}</Label>
-                <Input className="mt-1" {...form.register(key)} />
+                <Input type={key === 'birthDate' ? 'date' : 'text'} className="mt-1" {...form.register(key)} />
                 {form.formState.errors[key] && (
                   <p className="text-red-500 text-xs mt-1">
                     {form.formState.errors[key]?.message}

@@ -29,6 +29,8 @@ interface Servantee {
   name: string
   phone: string
   church: string
+  diocese?: string
+  birthDate?: string | Date
   education: string
   work: string
   year: string
@@ -148,7 +150,9 @@ export default function ServanteesPage() {
               <TableRow className="bg-muted/50">
                 <TableHead className="text-right">الإسم</TableHead>
                 <TableHead className="text-right">التليفون</TableHead>
+                <TableHead className="text-right">الأبرشية</TableHead>
                 <TableHead className="text-right">الكنيسة</TableHead>
+                <TableHead className="text-right">تاريخ الميلاد</TableHead>
                 <TableHead className="text-right">الكلية</TableHead>
                 <TableHead className="text-right">الفرقة</TableHead>
                 <TableHead className="text-right w-[140px]">الإجراءات</TableHead>
@@ -157,7 +161,7 @@ export default function ServanteesPage() {
             <TableBody>
               {paginated.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                     لا يوجد مخدومين
                   </TableCell>
                 </TableRow>
@@ -166,7 +170,9 @@ export default function ServanteesPage() {
                   <TableRow key={s._id} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="font-medium">{s.name}</TableCell>
                     <TableCell className="text-muted-foreground">{s.phone || '-'}</TableCell>
+                    <TableCell>{s.diocese || '-'}</TableCell>
                     <TableCell>{s.church || '-'}</TableCell>
+                    <TableCell>{s.birthDate ? new Date(s.birthDate).toLocaleDateString('ar-EG') : '-'}</TableCell>
                     <TableCell>{s.education || '-'}</TableCell>
                     <TableCell>{s.year || '-'}</TableCell>
                     <TableCell>
@@ -216,6 +222,10 @@ export default function ServanteesPage() {
 
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
+                  <p className="text-muted-foreground text-xs">الأبرشية</p>
+                  <p>{s.diocese || '-'}</p>
+                </div>
+                <div>
                   <p className="text-muted-foreground text-xs">الكنيسة</p>
                   <p>{s.church || '-'}</p>
                 </div>
@@ -226,6 +236,10 @@ export default function ServanteesPage() {
                 <div>
                   <p className="text-muted-foreground text-xs">الفرقة</p>
                   <p>{s.year || '-'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-muted-foreground text-xs">تاريخ الميلاد</p>
+                  <p>{s.birthDate ? new Date(s.birthDate).toLocaleDateString('ar-EG') : '-'}</p>
                 </div>
               </div>
 
