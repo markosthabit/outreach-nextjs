@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
 import { apiFetch } from '@/lib/api'
@@ -60,10 +61,14 @@ export function EntityDialog({
       delete formattedData.updatedAt
       delete formattedData.__v
 
-      // Convert date strings to ISO
+      // Convert date strings to ISO and numbers to Number
       fields.forEach((f) => {
         if (f.type === 'date' && formattedData[f.name]) {
           formattedData[f.name] = new Date(formattedData[f.name]).toISOString()
+        } else if (f.type === 'number') {
+          formattedData[f.name] = formattedData[f.name] !== '' && formattedData[f.name] != null
+            ? Number(formattedData[f.name]) 
+            : null
         }
       })
 
@@ -88,7 +93,7 @@ export function EntityDialog({
         )}
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto max-w-[95vw] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -117,6 +122,12 @@ export function EntityDialog({
                     ))}
                   </SelectContent>
                 </Select>
+              ) : field.type === 'textarea' ? (
+                <Textarea
+                  id={field.name}
+                  defaultValue={initialData?.[field.name] ?? ''}
+                  {...register(field.name)}
+                />
               ) : (
                 <Input
                   id={field.name}

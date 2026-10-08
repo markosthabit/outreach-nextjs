@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Pencil, CalendarDays, MapPin, Users, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Pencil, CalendarDays, MapPin, Users, ChevronLeft, ChevronRight, X, Clock } from 'lucide-react'
 import NotesButton from '@/components/shared/notes-button'
 import GenerateMissingServantees from './generate-missing-servantees'
 import { GenerateAttendeesReport } from './generate-attendees-report'
@@ -33,6 +33,9 @@ type Retreat = {
   startDate?: string
   endDate?: string
   location?: string
+  hours?: number
+  contents?: string
+  exercises?: string
   notes?: Array<{ _id?: string; content?: string }>
   attendees?: Servantee[] | string[]
 }
@@ -43,6 +46,9 @@ const retreatFields = [
   { name: 'location', label: 'مكان الخلوة', required: true },
   { name: 'startDate', label: 'تاريخ البداية', type: 'date', required: true },
   { name: 'endDate', label: 'تاريخ النهاية', type: 'date', required: true },
+  { name: 'hours', label: 'عدد الساعات', type: 'number' },
+  { name: 'contents', label: 'محتويات وكلمات الخلوة', type: 'textarea' },
+  { name: 'exercises', label: 'تداريب الخلوة', type: 'textarea' },
 ]
 
 const PAGE_SIZE = 10
@@ -176,9 +182,24 @@ function FocusedRetreatCard({
               {retreat.endDate && ` — ${format(new Date(retreat.endDate), 'yyyy-MM-dd')}`}
             </span>
           )}
+          {retreat.hours && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" /> {retreat.hours} ساعة
+            </span>
+          )}
         </div>
+        {retreat.contents && (
+          <p className="text-sm mt-1 whitespace-pre-wrap">
+            <strong>محتويات وكلمات الخلوة:</strong><br /> {retreat.contents}
+          </p>
+        )}
+        {retreat.exercises && (
+          <p className="text-sm mt-1 whitespace-pre-wrap">
+            <strong>تداريب الخلوة:</strong><br /> {retreat.exercises}
+          </p>
+        )}
         {retreat.notes?.length ? (
-          <p className="text-sm mt-1">
+          <p className="text-sm mt-1 whitespace-pre-wrap">
             <strong>ملاحظات:</strong>{' '}
             {(retreat.notes as any[]).map((n) => n.content || n).join(' / ')}
           </p>
@@ -366,6 +387,7 @@ export default function RetreatsPage() {
               <TableHead className="text-right">المكان</TableHead>
               <TableHead className="text-right">البداية</TableHead>
               <TableHead className="text-right">النهاية</TableHead>
+              <TableHead className="text-right">الساعات</TableHead>
               <TableHead className="text-right">المشاركين</TableHead>
               <TableHead className="text-right w-[140px]">الإجراءات</TableHead>
             </TableRow>
@@ -373,7 +395,7 @@ export default function RetreatsPage() {
           <TableBody>
             {paginated.length === 0 && !loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                   لا يوجد خلوات
                 </TableCell>
               </TableRow>
@@ -394,6 +416,7 @@ export default function RetreatsPage() {
                   <TableCell>
                     {r.endDate ? format(new Date(r.endDate), 'yyyy-MM-dd') : '-'}
                   </TableCell>
+                  <TableCell>{r.hours ? `${r.hours} س` : '-'}</TableCell>
                   <TableCell>{(r.attendees as any[])?.length || 0}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
@@ -463,6 +486,11 @@ export default function RetreatsPage() {
                   <span className="flex items-center gap-1">
                     <CalendarDays className="h-3 w-3" />
                     {format(new Date(r.startDate), 'yyyy-MM-dd')}
+                  </span>
+                )}
+                {r.hours && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {r.hours} س
                   </span>
                 )}
               </div>

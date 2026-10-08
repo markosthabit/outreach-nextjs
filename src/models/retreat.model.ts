@@ -5,6 +5,9 @@ export interface IRetreat {
   location: string;
   startDate: Date;
   endDate: Date;
+  hours?: number;
+  contents?: string;
+  exercises?: string;
   attendees?: Types.ObjectId[];
   notes?: Types.ObjectId[];
 }
@@ -17,6 +20,9 @@ const RetreatSchema = new Schema<IRetreat>(
     location: { type: String, required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
+    hours: { type: Number },
+    contents: { type: String },
+    exercises: { type: String },
     attendees: [{ type: Types.ObjectId, ref: 'Servantee', default: [] }],
     notes: [{ type: Types.ObjectId, ref: 'Note', default: [] }],
   },
