@@ -10,6 +10,7 @@ import { apiFetch } from '@/lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { ChevronLeft, ChevronRight, Search, FileDown } from 'lucide-react'
+import { IconBrandWhatsapp } from '@tabler/icons-react'
 import { b64font } from '@/lib/fonts/amiri-font'
 
 interface Retreat {
@@ -317,7 +318,22 @@ export default function SearchPage() {
                         {(page - 1) * PAGE_SIZE + i + 1}
                       </TableCell>
                       <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.phone}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 justify-end">
+                          {s.phone}
+                          {s.phone && (
+                            <a
+                              href={`https://wa.me/${s.phone.replace(/\D/g, '').replace(/^01/, '201')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center w-9 h-9 -ml-2 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"
+                              title="مراسلة واتساب"
+                            >
+                              <IconBrandWhatsapp size={20} stroke={1.5} />
+                            </a>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -334,7 +350,20 @@ export default function SearchPage() {
                 <Card key={s._id} className="p-3 flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">{s.phone}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">{s.phone}</p>
+                      {s.phone && (
+                        <a
+                          href={`https://wa.me/${s.phone.replace(/\D/g, '').replace(/^01/, '201')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center w-11 h-11 -ml-3 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"
+                          title="مراسلة واتساب"
+                        >
+                          <IconBrandWhatsapp size={24} stroke={1.5} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {(page - 1) * PAGE_SIZE + i + 1}

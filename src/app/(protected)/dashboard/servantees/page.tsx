@@ -23,6 +23,7 @@ import NotesButton from '@/components/shared/notes-button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Users, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { IconBrandWhatsapp } from '@tabler/icons-react'
 
 interface Servantee {
   _id: string
@@ -169,7 +170,22 @@ export default function ServanteesPage() {
                 paginated.map((s) => (
                   <TableRow key={s._id} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{s.phone || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        {s.phone || '-'}
+                        {s.phone && (
+                          <a
+                            href={`https://wa.me/${s.phone.replace(/\D/g, '').replace(/^01/, '201')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center w-9 h-9 -ml-2 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"
+                            title="مراسلة واتساب"
+                          >
+                            <IconBrandWhatsapp size={20} stroke={1.5} />
+                          </a>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{s.diocese || '-'}</TableCell>
                     <TableCell>{s.church || '-'}</TableCell>
                     <TableCell>{s.birthDate ? new Date(s.birthDate).toLocaleDateString('ar-EG') : '-'}</TableCell>
@@ -213,7 +229,20 @@ export default function ServanteesPage() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold text-base">{s.name}</p>
-                  <p className="text-sm text-muted-foreground">{s.phone || '-'}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground">{s.phone || '-'}</p>
+                    {s.phone && (
+                      <a
+                        href={`https://wa.me/${s.phone.replace(/\D/g, '').replace(/^01/, '201')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center w-11 h-11 -ml-3 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"
+                        title="مراسلة واتساب"
+                      >
+                        <IconBrandWhatsapp size={24} stroke={1.5} />
+                      </a>
+                    )}
+                  </div>
                 </div>
                 {/* <Badge variant={s.isActive ? 'default' : 'secondary'} className="text-xs shrink-0">
                   {s.isActive ? 'نشط' : 'غير نشط'}
