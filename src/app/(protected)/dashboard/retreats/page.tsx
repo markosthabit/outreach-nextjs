@@ -25,8 +25,7 @@ import GenerateMissingServantees from './generate-missing-servantees'
 import { GenerateAttendeesReport } from './generate-attendees-report'
 import { AddServanteeDialog } from '../servantees/add-servantee-dialog'
 
-// ---------- Types ----------
-type Servantee = { _id: string; name: string; phone?: string }
+type Servantee = { _id: string; name: string; phone?: string; retreats?: Array<any> }
 
 type Retreat = {
   _id: string
@@ -54,19 +53,20 @@ const retreatFields = [
 
 const PAGE_SIZE = 10
 
-// ---------- AttendeePicker ----------
-function AttendeePicker({ retreatId, onAdded }: { retreatId: string; onAdded: () => void }) {
+function AttendeePicker({ 
+  retreatId, 
+  onAdded, 
+  allServantees, 
+  refreshServantees 
+}: { 
+  retreatId: string; 
+  onAdded: () => void;
+  allServantees: Servantee[];
+  refreshServantees: () => void;
+}) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Servantee[]>([])
-  const [allServantees, setAllServantees] = useState<Servantee[]>([])
   const [loading, setLoading] = useState(false)
-
-  // Fetch all servantees once for client-side search
-  useEffect(() => {
-    apiFetch<{ servantees: Servantee[] }>('/api/servantees')
-      .then((res) => setAllServantees(res.servantees ?? []))
-      .catch(() => toast.error('حدث خطأ أثناء تحميل المخدومين'))
-  }, [])
 
   useEffect(() => {
     const q = query.trim().toLowerCase()
@@ -114,11 +114,8 @@ function AttendeePicker({ retreatId, onAdded }: { retreatId: string; onAdded: ()
           className="flex-1"
         />
         <AddServanteeDialog onAdded={() => {
-           apiFetch<{ servantees: Servantee[] }>('/api/servantees')
-             .then((res) => {
-               setAllServantees(res.servantees ?? [])
-               toast.success('تم التحديث: يمكنك الآن البحث عن المخدوم الجديد وإضافته للخلوة')
-             })
+           refreshServantees()
+           toast.success('تم التحديث: يمكنك الآن البحث عن المخدوم الجديد وإضافته للخلوة')
         }} />
       </div>
 
@@ -149,20 +146,35 @@ function AttendeePicker({ retreatId, onAdded }: { retreatId: string; onAdded: ()
 function FocusedRetreatCard({
   retreat,
   onRemoveAttendee,
+  allServantees,
 }: {
   retreat: Retreat
   onRemoveAttendee: (id: string) => void
+  allServantees: Servantee[]
 }) {
   const [attendeePage, setAttendeePage] = useState(1)
   const attendeeLimit = 10
 
   const attendees = useMemo(() => {
-    return ((retreat.attendees || []) as any[]).map((a) => ({
-      id: typeof a === 'string' ? a : a._id,
-      name: typeof a === 'string' ? a : a.name || 'غير معروف',
-      phone: typeof a === 'string' ? '-' : a.phone || '-',
-    }))
-  }, [retreat.attendees])
+    return ((retreat.attendees || []) as any[]).map((a) => {
+      const id = typeof a === 'string' ? a : a._id
+      const name = typeof a === 'string' ? a : a.name || 'غير معروف'
+      const phone = typeof a === 'string' ? '-' : a.phone || '-'
+      
+      const s = allServantees.find(x => x._id === id)
+      let isFirstTimer = false
+      if (s && s.retreats && s.retreats.length > 0) {
+        const sorted = [...s.retreats].sort((x, y) => new Date(x.startDate).getTime() - new Date(y.startDate).getTime())
+        if (sorted[0]._id === retreat._id) {
+          isFirstTimer = true
+        }
+      } else if (s && (!s.retreats || s.retreats.length === 0)) {
+        isFirstTimer = true // Just added or data missing
+      }
+
+      return { id, name, phone, isFirstTimer }
+    })
+  }, [retreat.attendees, retreat._id, allServantees])
 
   const paginated = attendees.slice((attendeePage - 1) * attendeeLimit, attendeePage * attendeeLimit)
   const totalAttendeePages = Math.max(1, Math.ceil(attendees.length / attendeeLimit))
@@ -244,7 +256,16 @@ function FocusedRetreatCard({
                 ) : (
                   paginated.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell>{a.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {a.name}
+                          {a.isFirstTimer && (
+                            <Badge variant="outline" className="text-[10px] h-5 bg-blue-50 text-blue-700 border-blue-200" title="أول مرة يحضر خلوة">
+                              جديد
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{a.phone}</TableCell>
                       <TableCell>
                         <div className="flex gap-1 justify-end">
@@ -273,7 +294,14 @@ function FocusedRetreatCard({
             paginated.map((a) => (
               <Card key={a.id} className="p-3 flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-sm">{a.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm">{a.name}</p>
+                    {a.isFirstTimer && (
+                      <Badge variant="outline" className="text-[10px] h-5 px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200">
+                        جديد
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">{a.phone}</p>
                 </div>
                 <div className="flex gap-1">
@@ -312,9 +340,22 @@ function FocusedRetreatCard({
 export default function RetreatsPage() {
   const [page, setPage] = useState(1)
   const [allRetreats, setAllRetreats] = useState<Retreat[]>([])
+  const [allServantees, setAllServantees] = useState<Servantee[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRetreat, setSelectedRetreat] = useState<Retreat | null>(null)
+
+  // Fetch all servantees
+  const fetchAllServantees = useCallback(async () => {
+    try {
+      const res = await apiFetch<{ servantees: Servantee[] }>('/api/servantees')
+      setAllServantees(res.servantees ?? [])
+    } catch (err) {
+      toast.error('حدث خطأ أثناء تحميل المخدومين')
+    }
+  }, [])
+
+  useEffect(() => { fetchAllServantees() }, [fetchAllServantees])
 
   // Fetch all retreats once
   const fetchRetreats = useCallback(async () => {
@@ -559,10 +600,13 @@ export default function RetreatsPage() {
           <FocusedRetreatCard
             retreat={selectedRetreat}
             onRemoveAttendee={handleRemoveAttendee}
+            allServantees={allServantees}
           />
           <div className="space-y-4">
             <AttendeePicker
               retreatId={selectedRetreat._id}
+              allServantees={allServantees}
+              refreshServantees={fetchAllServantees}
               onAdded={async () => {
                 await refreshFocused()
                 fetchRetreats()
