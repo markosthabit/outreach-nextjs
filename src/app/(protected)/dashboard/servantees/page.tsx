@@ -22,7 +22,7 @@ import ServanteeDetailsDialog from './servantee-details-dialog'
 import NotesButton from '@/components/shared/notes-button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDebounce } from '@/hooks/use-debounce'
-import { Users, Search, ChevronLeft, ChevronRight, AlertTriangle, UserMinus } from 'lucide-react'
+import { Users, Search, ChevronLeft, ChevronRight, AlertTriangle, UserMinus, Gift } from 'lucide-react'
 import { Toggle } from '@/components/ui/toggle'
 import { IconBrandWhatsapp } from '@tabler/icons-react'
 
@@ -54,7 +54,14 @@ export default function ServanteesPage() {
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [showOnlyInactive, setShowOnlyInactive] = useState(false)
+  const [showBirthdays, setShowBirthdays] = useState(false)
   const debouncedSearch = useDebounce(searchTerm, 400)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('filter=birthdays')) {
+      setShowBirthdays(true)
+    }
+  }, [])
 
   // ── Helper ─────────────────────────────────────────────────
   const isInactive = useCallback((s: Servantee) => {
@@ -68,6 +75,11 @@ export default function ServanteesPage() {
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
 
     return new Date(latestRetreat.startDate) < threeMonthsAgo
+  }, [])
+
+  const hasBirthdayThisMonth = useCallback((s: Servantee) => {
+    if (!s.birthDate) return false
+    return new Date(s.birthDate).getMonth() === new Date().getMonth()
   }, [])
 
   // ── Fetch all servantees once ──────────────────────────────
@@ -96,6 +108,10 @@ export default function ServanteesPage() {
       result = result.filter(isInactive)
     }
 
+    if (showBirthdays) {
+      result = result.filter(hasBirthdayThisMonth)
+    }
+
     const q = debouncedSearch.trim().toLowerCase()
     if (!q) return result
 
@@ -105,10 +121,10 @@ export default function ServanteesPage() {
         s.phone?.toLowerCase().includes(q) ||
         s.church?.toLowerCase().includes(q)
     )
-  }, [allServantees, debouncedSearch, showOnlyInactive, isInactive])
+  }, [allServantees, debouncedSearch, showOnlyInactive, showBirthdays, isInactive, hasBirthdayThisMonth])
 
   // ── Reset page on filter change ────────────────────────────
-  useEffect(() => { setPage(1) }, [debouncedSearch, showOnlyInactive])
+  useEffect(() => { setPage(1) }, [debouncedSearch, showOnlyInactive, showBirthdays])
 
   // ── Client-side pagination ─────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -165,15 +181,26 @@ export default function ServanteesPage() {
             className="pr-9"
           />
         </div>
-        <Toggle
-          pressed={showOnlyInactive}
-          onPressedChange={setShowOnlyInactive}
-          variant="outline"
-          className="gap-2 data-[state=on]:bg-amber-100 data-[state=on]:text-amber-900 dark:data-[state=on]:bg-amber-900/30 dark:data-[state=on]:text-amber-300"
-        >
-          <UserMinus className="h-4 w-4" />
-          المنقطعين
-        </Toggle>
+        <div className="flex gap-2 w-full">
+          <Toggle
+            pressed={showOnlyInactive}
+            onPressedChange={setShowOnlyInactive}
+            variant="outline"
+            className="flex-1 lg:flex-none gap-2 data-[state=on]:bg-amber-100 data-[state=on]:text-amber-900 dark:data-[state=on]:bg-amber-900/30 dark:data-[state=on]:text-amber-300"
+          >
+            <UserMinus className="h-4 w-4" />
+            المنقطعين
+          </Toggle>
+          <Toggle
+            pressed={showBirthdays}
+            onPressedChange={setShowBirthdays}
+            variant="outline"
+            className="flex-1 lg:flex-none gap-2 data-[state=on]:bg-pink-100 data-[state=on]:text-pink-900 dark:data-[state=on]:bg-pink-900/30 dark:data-[state=on]:text-pink-300"
+          >
+            <Gift className="h-4 w-4" />
+            أعياد الميلاد
+          </Toggle>
+        </div>
       </div>
 
       {/* ── Table (desktop) / Cards (mobile) ── */}
@@ -207,8 +234,15 @@ export default function ServanteesPage() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         {s.name}
+                        {hasBirthdayThisMonth(s) && (
+                          <span title="عيد ميلاده هذا الشهر" className="shrink-0 flex items-center">
+                            <Gift className="h-4 w-4 text-pink-500" />
+                          </span>
+                        )}
                         {isInactive(s) && (
-                          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" title="لم يحضر خلوة منذ 3 أشهر" />
+                          <span title="لم يحضر خلوة منذ 3 أشهر" className="shrink-0 flex items-center">
+                            <AlertTriangle className="h-4 w-4 text-amber-500" />
+                          </span>
                         )}
                       </div>
                     </TableCell>
@@ -272,8 +306,15 @@ export default function ServanteesPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-base">{s.name}</p>
+                    {hasBirthdayThisMonth(s) && (
+                      <span title="عيد ميلاده هذا الشهر" className="shrink-0 flex items-center">
+                        <Gift className="h-4 w-4 text-pink-500" />
+                      </span>
+                    )}
                     {isInactive(s) && (
-                      <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" title="لم يحضر خلوة منذ 3 أشهر" />
+                      <span title="لم يحضر خلوة منذ 3 أشهر" className="shrink-0 flex items-center">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, CalendarDays, UserCog } from 'lucide-react'
+import { Users, CalendarDays, UserCog, Gift } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
@@ -15,41 +15,48 @@ export default function DashboardPage() {
     retreats: 0,
     upcomingRetreats: 0,
     servants: 0,
+    birthdaysThisMonth: 0,
   })
   const [loading, setLoading] = useState(true)
 
-async function fetchDashboardData() {
-  try {
-    setLoading(true)
+  async function fetchDashboardData() {
+    try {
+      setLoading(true)
 
-    const [servanteesRes, retreatsRes, usersRes] = await Promise.all([
-      apiFetch<{ servantees: any[] }>('/api/servantees'),
-      apiFetch<{ retreats: any[] }>('/api/retreats'),
-      apiFetch<{ users: any[] }>('/api/users'),
-    ])
+      const [servanteesRes, retreatsRes, usersRes] = await Promise.all([
+        apiFetch<{ servantees: any[] }>('/api/servantees'),
+        apiFetch<{ retreats: any[] }>('/api/retreats'),
+        apiFetch<{ users: any[] }>('/api/users'),
+      ])
 
-    const servantees = servanteesRes.servantees ?? []
-    const retreats = retreatsRes.retreats ?? []
-    const users = usersRes.users ?? []
+      const servantees = servanteesRes.servantees ?? []
+      const retreats = retreatsRes.retreats ?? []
+      const users = usersRes.users ?? []
 
-    const now = new Date()
-    const upcoming = retreats.filter(
-      (r: any) => r.startDate && new Date(r.startDate) > now
-    ).length
+      const now = new Date()
+      const upcoming = retreats.filter(
+        (r: any) => r.startDate && new Date(r.startDate) > now
+      ).length
 
-    setStats({
-      servantees: servantees.length,
-      retreats: retreats.length,
-      upcomingRetreats: upcoming,
-      servants: users.length,
-    })
-  } catch (err) {
-    console.error('Dashboard fetch failed:', err)
-    toast.error('فشل تحميل البيانات 😢')
-  } finally {
-    setLoading(false)
+      const currentMonth = now.getMonth()
+      const birthdays = servantees.filter(
+        (s: any) => s.birthDate && new Date(s.birthDate).getMonth() === currentMonth
+      ).length
+
+      setStats({
+        servantees: servantees.length,
+        retreats: retreats.length,
+        upcomingRetreats: upcoming,
+        servants: users.length,
+        birthdaysThisMonth: birthdays,
+      })
+    } catch (err) {
+      console.error('Dashboard fetch failed:', err)
+      toast.error('فشل تحميل البيانات 😢')
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
 
 
@@ -125,6 +132,23 @@ async function fetchDashboardData() {
             <p className="text-xs text-muted-foreground">عدد الخدام</p>
           </CardContent>
         </Card>
+
+        {/* Birthdays */}
+        <Card
+          className="hover:bg-accent/30 transition cursor-pointer"
+          onClick={() => router.push('dashboard/servantees?filter=birthdays')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">أعياد الميلاد</CardTitle>
+            <Gift className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">
+              {loading ? '...' : stats.birthdaysThisMonth}
+            </div>
+            <p className="text-xs text-muted-foreground">عيد ميلاد</p>
+          </CardContent>
+        </Card>
       </section>
 
       {/* Call to Action */}
@@ -137,13 +161,13 @@ async function fetchDashboardData() {
             </p>
           </div>
           <div className="flex gap-2">
-  <Button onClick={() => router.push('dashboard/servantees')}>
-    إضافة مخدوم
-  </Button>
-  <Button onClick={() => router.push('dashboard/retreats')}>
-    إضافة خلوة
-  </Button>
-</div>
+            <Button onClick={() => router.push('dashboard/servantees')}>
+              إضافة مخدوم
+            </Button>
+            <Button onClick={() => router.push('dashboard/retreats')}>
+              إضافة خلوة
+            </Button>
+          </div>
 
         </Card>
       </section>
