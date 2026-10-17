@@ -19,14 +19,16 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Pencil, CalendarDays, MapPin, Users, ChevronLeft, ChevronRight, X, Clock } from 'lucide-react'
+import { Pencil, CalendarDays, MapPin, Users, ChevronLeft, ChevronRight, X, Clock, UserCog, Plus } from 'lucide-react'
 import NotesButton from '@/components/shared/notes-button'
 import GenerateMissingServantees from './generate-missing-servantees'
 import { GenerateAttendeesReport } from './generate-attendees-report'
 import { AddServanteeDialog } from '../servantees/add-servantee-dialog'
-import { filterServantees, filterRetreats } from '@/lib/arabic-search'
+import { filterServantees, filterRetreats, matchesArabic } from '@/lib/arabic-search'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 type Servantee = { _id: string; name: string; phone?: string; retreats?: Array<any> }
+type Servant = { _id: string; name: string; email?: string; role?: string }
 
 type Retreat = {
   _id: string
@@ -39,6 +41,7 @@ type Retreat = {
   exercises?: string
   notes?: Array<{ _id?: string; content?: string }>
   attendees?: Servantee[] | string[]
+  servants?: Servant[] | string[]
 }
 
 // ---------- Fields ----------
@@ -150,18 +153,129 @@ function AttendeePicker({
   )
 }
 
+// ---------- ServantPicker ----------
+function ServantPicker({
+  retreatId,
+  currentServantIds,
+  allServants,
+  onAdded,
+}: {
+  retreatId: string
+  currentServantIds: string[]
+  allServants: Servant[]
+  onAdded: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const availableServants = useMemo(() => {
+    return allServants.filter((s) => !currentServantIds.includes(s._id))
+  }, [allServants, currentServantIds])
+
+  const results = useMemo(() => {
+    const q = query.trim()
+    if (!q) {
+      return availableServants.slice(0, 6)
+    }
+    return availableServants.filter(
+      (s) => matchesArabic(q, s.name) || (s.email && s.email.toLowerCase().includes(q.toLowerCase()))
+    )
+  }, [query, availableServants])
+
+  const addServant = async (servantId: string) => {
+    try {
+      setLoading(true)
+      const res = await apiFetch<{ retreat: Retreat }>(`/api/retreats/${retreatId}`)
+      const existing = (res.retreat.servants || []).map((s: any) =>
+        typeof s === 'string' ? s : s._id
+      )
+      if (existing.includes(servantId)) {
+        toast.error('الخادم مضاف بالفعل للخلوة')
+        return
+      }
+      await apiFetch(`/api/retreats/${retreatId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ servants: [...existing, servantId] }),
+      })
+      toast.success('تمت إضافة الخادم إلى الخلوة بنجاح')
+      onAdded()
+      setQuery('')
+    } catch {
+      toast.error('حدث خطأ أثناء إضافة الخادم')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card className="p-4 space-y-3">
+      <Input
+        placeholder="ابحث عن خادم مسجل بالاسم أو البريد..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+
+      {results.length > 0 ? (
+        <div className="space-y-2 max-h-56 overflow-y-auto">
+          {results.map((s) => (
+            <div key={s._id} className="flex items-center justify-between border rounded-lg p-2 bg-muted/10 hover:bg-muted/20 transition-colors">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-xs shrink-0">
+                  {s.name.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium text-xs truncate">{s.name}</p>
+                    <Badge variant={s.role === 'Admin' ? 'default' : 'secondary'} className="text-[9px] h-4 px-1">
+                      {s.role === 'Admin' ? 'مسؤول' : 'خادم'}
+                    </Badge>
+                  </div>
+                  {s.email && <p className="text-[11px] text-muted-foreground truncate">{s.email}</p>}
+                </div>
+              </div>
+              <Button size="sm" onClick={() => addServant(s._id)} disabled={loading} className="gap-1 h-7 text-xs shrink-0">
+                <Plus className="h-3.5 w-3.5" /> إضافة
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : availableServants.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-4">
+          تمت إضافة جميع الخدام المسجلين إلى هذه الخلوة 🎉
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground text-center py-4">
+          لا يوجد نتائج تطابق البحث
+        </p>
+      )}
+    </Card>
+  )
+}
+
 // ---------- FocusedRetreatCard ----------
 function FocusedRetreatCard({
   retreat,
   onRemoveAttendee,
+  onRemoveServant,
   allServantees,
 }: {
   retreat: Retreat
   onRemoveAttendee: (id: string) => void
+  onRemoveServant: (id: string) => void
   allServantees: Servantee[]
 }) {
   const [attendeePage, setAttendeePage] = useState(1)
   const attendeeLimit = 10
+
+  const servants = useMemo(() => {
+    return ((retreat.servants || []) as any[]).map((s) => {
+      const id = typeof s === 'string' ? s : s._id
+      const name = typeof s === 'string' ? 'خادم' : s.name || 'غير معروف'
+      const email = typeof s === 'string' ? '' : s.email || ''
+      const role = typeof s === 'string' ? 'خادم' : s.role === 'Admin' ? 'مسؤول' : 'خادم'
+      return { _id: id, name, email, role }
+    })
+  }, [retreat.servants])
 
   const attendees = useMemo(() => {
     return ((retreat.attendees || []) as any[]).map((a) => {
@@ -235,11 +349,56 @@ function FocusedRetreatCard({
         ) : null}
       </div>
 
+      {/* Servants Section */}
+      <div className="space-y-2 border-t pt-3">
+        <div className="flex items-center gap-2 mb-1">
+          <UserCog className="h-4 w-4 text-primary" />
+          <h3 className="font-medium text-sm">الخدام المشرفون</h3>
+          <Badge variant="secondary" className="text-xs">{servants.length}</Badge>
+        </div>
+
+        {servants.length === 0 ? (
+          <p className="text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg border border-dashed text-center">
+            لم يتم تسجيل خدام لهذه الخلوة بعد — يمكنك إضافتهم من تبويب &quot;الخدام&quot;
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {servants.map((s) => (
+              <div
+                key={s._id}
+                className="flex items-center justify-between p-2 rounded-lg border bg-card/60 hover:bg-muted/20 transition-colors gap-2"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-xs shrink-0">
+                    {s.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-medium text-xs truncate">{s.name}</p>
+                      <Badge variant={s.role === 'مسؤول' ? 'default' : 'secondary'} className="text-[9px] h-4 px-1">
+                        {s.role}
+                      </Badge>
+                    </div>
+                    {s.email && <p className="text-[11px] text-muted-foreground truncate">{s.email}</p>}
+                  </div>
+                </div>
+                <ConfirmDeleteDialog
+                  onConfirm={() => onRemoveServant(s._id)}
+                  title="حذف خادم من الخلوة"
+                  description={`هل أنت متأكد من حذف الخادم "${s.name}" من هذه الخلوة؟`}
+                  triggerLabel="حذف"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Attendees */}
-      <div>
+      <div className="space-y-2 border-t pt-3">
         <div className="flex items-center gap-2 mb-2">
           <Users className="h-4 w-4 text-muted-foreground" />
-          <h3 className="font-medium">المشاركين</h3>
+          <h3 className="font-medium text-sm">المشاركين (المخدومين)</h3>
           <Badge variant="secondary">{attendees.length}</Badge>
         </div>
 
@@ -349,6 +508,7 @@ export default function RetreatsPage() {
   const [page, setPage] = useState(1)
   const [allRetreats, setAllRetreats] = useState<Retreat[]>([])
   const [allServantees, setAllServantees] = useState<Servantee[]>([])
+  const [allServants, setAllServants] = useState<Servant[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRetreat, setSelectedRetreat] = useState<Retreat | null>(null)
@@ -364,6 +524,18 @@ export default function RetreatsPage() {
   }, [])
 
   useEffect(() => { fetchAllServantees() }, [fetchAllServantees])
+
+  // Fetch all servants
+  const fetchAllServants = useCallback(async () => {
+    try {
+      const res = await apiFetch<{ users: Servant[] }>('/api/users')
+      setAllServants(res.users ?? [])
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => { fetchAllServants() }, [fetchAllServants])
 
   // Fetch all retreats once
   const fetchRetreats = useCallback(async () => {
@@ -411,6 +583,20 @@ export default function RetreatsPage() {
     fetchRetreats()
   }
 
+  const handleRemoveServant = async (servantId: string) => {
+    if (!selectedRetreat) return
+    const existing = (selectedRetreat.servants || []).map((s: any) =>
+      typeof s === 'string' ? s : s._id
+    )
+    await apiFetch(`/api/retreats/${selectedRetreat._id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ servants: existing.filter((id) => id !== servantId) }),
+    })
+    toast.success('تم حذف الخادم من الخلوة')
+    await refreshFocused()
+    fetchRetreats()
+  }
+
   return (
     <div className="p-4 lg:p-6 space-y-6" dir="rtl">
 
@@ -443,13 +629,14 @@ export default function RetreatsPage() {
               <TableHead className="text-right">النهاية</TableHead>
               <TableHead className="text-right">الساعات</TableHead>
               <TableHead className="text-right">المشاركين</TableHead>
+              <TableHead className="text-right">الخدام</TableHead>
               <TableHead className="text-right w-[140px]">الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginated.length === 0 && !loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                   لا يوجد خلوات
                 </TableCell>
               </TableRow>
@@ -472,6 +659,11 @@ export default function RetreatsPage() {
                   </TableCell>
                   <TableCell>{r.hours ? `${r.hours} س` : '-'}</TableCell>
                   <TableCell>{(r.attendees as any[])?.length || 0}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {(r.servants as any[])?.length || 0}
+                    </Badge>
+                  </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
                       <EntityDialog
@@ -526,9 +718,14 @@ export default function RetreatsPage() {
             >
               <div className="flex items-start justify-between">
                 <p className="font-semibold">{r.name}</p>
-                <Badge variant="secondary" className="text-xs shrink-0">
-                  {(r.attendees as any[])?.length || 0} مشارك
-                </Badge>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Badge variant="secondary" className="text-xs">
+                    {(r.attendees as any[])?.length || 0} مشارك
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {(r.servants as any[])?.length || 0} خادم
+                  </Badge>
+                </div>
               </div>
               <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                 {r.location && (
@@ -604,18 +801,47 @@ export default function RetreatsPage() {
           <FocusedRetreatCard
             retreat={selectedRetreat}
             onRemoveAttendee={handleRemoveAttendee}
+            onRemoveServant={handleRemoveServant}
             allServantees={allServantees}
           />
           <div className="space-y-4">
-            <AttendeePicker
-              retreatId={selectedRetreat._id}
-              allServantees={allServantees}
-              refreshServantees={fetchAllServantees}
-              onAdded={async () => {
-                await refreshFocused()
-                fetchRetreats()
-              }}
-            />
+            <Tabs defaultValue="attendees" dir="rtl">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="attendees" className="gap-1.5 text-xs sm:text-sm">
+                  <Users className="h-4 w-4" />
+                  المشاركون ({((selectedRetreat.attendees || []) as any[]).length})
+                </TabsTrigger>
+                <TabsTrigger value="servants" className="gap-1.5 text-xs sm:text-sm">
+                  <UserCog className="h-4 w-4" />
+                  الخدام ({((selectedRetreat.servants || []) as any[]).length})
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="attendees" className="mt-2">
+                <AttendeePicker
+                  retreatId={selectedRetreat._id}
+                  allServantees={allServantees}
+                  refreshServantees={fetchAllServantees}
+                  onAdded={async () => {
+                    await refreshFocused()
+                    fetchRetreats()
+                  }}
+                />
+              </TabsContent>
+              <TabsContent value="servants" className="mt-2">
+                <ServantPicker
+                  retreatId={selectedRetreat._id}
+                  currentServantIds={((selectedRetreat.servants || []) as any[]).map(
+                    (s) => (typeof s === 'string' ? s : s._id)
+                  )}
+                  allServants={allServants}
+                  onAdded={async () => {
+                    await refreshFocused()
+                    fetchRetreats()
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
+
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => setSelectedRetreat(null)}
                 className="gap-1">

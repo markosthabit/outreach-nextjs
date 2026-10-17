@@ -9,6 +9,7 @@ export interface IRetreat {
   contents?: string;
   exercises?: string;
   attendees?: Types.ObjectId[];
+  servants?: Types.ObjectId[];
   notes?: Types.ObjectId[];
 }
 
@@ -24,10 +25,18 @@ const RetreatSchema = new Schema<IRetreat>(
     contents: { type: String },
     exercises: { type: String },
     attendees: [{ type: Types.ObjectId, ref: 'Servantee', default: [] }],
+    servants: [{ type: Types.ObjectId, ref: 'User', default: [] }],
     notes: [{ type: Types.ObjectId, ref: 'Note', default: [] }],
   },
   { collection: 'retreats', timestamps: true }
 );
+
+(RetreatSchema as any).set('strictPopulate', false);
+
+// In Next.js dev HMR, refresh cached model if it lacks the new servants path
+if (mongoose.models.Retreat && !mongoose.models.Retreat.schema.paths.servants) {
+  delete (mongoose.models as any).Retreat;
+}
 
 export const Retreat =
   mongoose.models.Retreat || mongoose.model<IRetreat>('Retreat', RetreatSchema);

@@ -5,18 +5,18 @@ import { User } from '@/models/user.model'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { UserRole } from '@/models/user.model'
 
-// GET /api/users — Admin only
+// GET /api/users — Authenticated users
 export async function GET(req: NextRequest) {
   try {
     await connectDB()
 
     const authUser = await getAuthUser(req)
 
-    if (authUser?.role !== UserRole.ADMIN) {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
+    if (!authUser) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    const users = await User.find()
+    const users = await User.find().select('name email role')
 
     return NextResponse.json({ users })
   } catch (error) {

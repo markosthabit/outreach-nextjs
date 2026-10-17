@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { Retreat } from '@/models/retreat.model'
+import '@/models/user.model'
 
 // GET /api/retreats/:id
 export async function GET(
@@ -14,6 +15,7 @@ export async function GET(
 
     const retreat = await Retreat.findById(id)
       .populate('attendees', 'name phone church')
+      .populate({ path: 'servants', select: 'name email role', strictPopulate: false })
       .populate('notes', 'content createdAt')
 
     if (!retreat) {
