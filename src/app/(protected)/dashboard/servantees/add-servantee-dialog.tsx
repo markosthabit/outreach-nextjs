@@ -40,7 +40,18 @@ const fields: { key: keyof ServanteeFormData; label: string }[] = [
   { key: 'year', label: 'الفرقة' },
 ]
 
-export function AddServanteeDialog({ onAdded }: { onAdded: () => void }) {
+type ServanteeResponse = {
+  _id: string
+  name: string
+  phone?: string
+  [key: string]: any
+}
+
+export function AddServanteeDialog({
+  onAdded,
+}: {
+  onAdded?: (newServantee?: ServanteeResponse) => void | Promise<void>
+}) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -52,7 +63,7 @@ export function AddServanteeDialog({ onAdded }: { onAdded: () => void }) {
   const onSubmit = async (values: ServanteeFormData) => {
     try {
       setLoading(true)
-      await apiFetch('/api/servantees', {
+      const res = await apiFetch<{ servantee: ServanteeResponse }>('/api/servantees', {
         method: 'POST',
         body: JSON.stringify(values),
       })
@@ -62,7 +73,9 @@ export function AddServanteeDialog({ onAdded }: { onAdded: () => void }) {
       })
       form.reset()
       setOpen(false)
-      onAdded()
+      if (onAdded) {
+        await onAdded(res.servantee)
+      }
     } catch (err: any) {
       if (err?.statusCode === 409) {
         toast.error('رقم التليفون مستخدم بالفعل!')

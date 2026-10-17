@@ -62,7 +62,7 @@ function AttendeePicker({
   retreatId: string; 
   onAdded: () => void;
   allServantees: Servantee[];
-  refreshServantees: () => void;
+  refreshServantees: () => void | Promise<void>;
 }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Servantee[]>([])
@@ -93,7 +93,7 @@ function AttendeePicker({
         method: 'PATCH',
         body: JSON.stringify({ attendees: [...existing, servanteeId] }),
       })
-      toast.success('تمت إضافة المخدوم')
+      toast.success('تمت إضافة المخدوم إلى الخلوة بنجاح')
       onAdded()
       setQuery('')
       setResults([])
@@ -113,9 +113,11 @@ function AttendeePicker({
           onChange={(e) => setQuery(e.target.value)}
           className="flex-1"
         />
-        <AddServanteeDialog onAdded={() => {
-           refreshServantees()
-           toast.success('تم التحديث: يمكنك الآن البحث عن المخدوم الجديد وإضافته للخلوة')
+        <AddServanteeDialog onAdded={async (newServantee) => {
+           await refreshServantees()
+           if (newServantee?._id) {
+             await addAttendee(newServantee._id)
+           }
         }} />
       </div>
 
