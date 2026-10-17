@@ -26,6 +26,7 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { Users, Search, ChevronLeft, ChevronRight, AlertTriangle, UserMinus, Gift } from 'lucide-react'
 import { Toggle } from '@/components/ui/toggle'
 import { IconBrandWhatsapp } from '@tabler/icons-react'
+import { filterServantees } from '@/lib/arabic-search'
 
 interface Servantee {
   _id: string
@@ -112,15 +113,11 @@ export default function ServanteesPage() {
       result = result.filter(hasBirthdayThisMonth)
     }
 
-    const q = debouncedSearch.trim().toLowerCase()
-    if (!q) return result
+    if (debouncedSearch.trim()) {
+      result = filterServantees(debouncedSearch, result)
+    }
 
-    return result.filter(
-      (s) =>
-        s.name?.toLowerCase().includes(q) ||
-        s.phone?.toLowerCase().includes(q) ||
-        s.church?.toLowerCase().includes(q)
-    )
+    return result
   }, [allServantees, debouncedSearch, showOnlyInactive, showBirthdays, isInactive, hasBirthdayThisMonth])
 
   // ── Reset page on filter change ────────────────────────────
@@ -168,7 +165,15 @@ export default function ServanteesPage() {
         </div>
         <div className="flex gap-2">
           {isAdmin && <ImportServanteesDialog onImported={fetchServantees} />}
-          <AddServanteeDialog onAdded={fetchServantees} />
+          <AddServanteeDialog
+            existingServantees={allServantees}
+            selectExistingLabel="عرض المخدوم"
+            onAdded={fetchServantees}
+            onSelectExisting={(existingServantee) => {
+              setSearchTerm(existingServantee.name)
+              toast.info(`تم تصفية القائمة لعرض: ${existingServantee.name}`)
+            }}
+          />
         </div>
       </div>
 

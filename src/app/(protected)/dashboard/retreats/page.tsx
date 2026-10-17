@@ -24,6 +24,7 @@ import NotesButton from '@/components/shared/notes-button'
 import GenerateMissingServantees from './generate-missing-servantees'
 import { GenerateAttendeesReport } from './generate-attendees-report'
 import { AddServanteeDialog } from '../servantees/add-servantee-dialog'
+import { filterServantees, filterRetreats } from '@/lib/arabic-search'
 
 type Servantee = { _id: string; name: string; phone?: string; retreats?: Array<any> }
 
@@ -69,13 +70,9 @@ function AttendeePicker({
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const q = query.trim().toLowerCase()
+    const q = query.trim()
     if (!q) { setResults([]); return }
-    setResults(
-      allServantees
-        .filter((s) => s.name?.toLowerCase().includes(q) || s.phone?.includes(q))
-        .slice(0, 10)
-    )
+    setResults(filterServantees(q, allServantees).slice(0, 10))
   }, [query, allServantees])
 
   const addAttendee = async (servanteeId: string) => {
@@ -113,12 +110,21 @@ function AttendeePicker({
           onChange={(e) => setQuery(e.target.value)}
           className="flex-1"
         />
-        <AddServanteeDialog onAdded={async (newServantee) => {
-           await refreshServantees()
-           if (newServantee?._id) {
-             await addAttendee(newServantee._id)
-           }
-        }} />
+        <AddServanteeDialog
+          existingServantees={allServantees}
+          selectExistingLabel="إضافة للخلوة"
+          onAdded={async (newServantee) => {
+            await refreshServantees()
+            if (newServantee?._id) {
+              await addAttendee(newServantee._id)
+            }
+          }}
+          onSelectExisting={async (existingServantee) => {
+            if (existingServantee?._id) {
+              await addAttendee(existingServantee._id)
+            }
+          }}
+        />
       </div>
 
       {results.length > 0 && (
@@ -377,11 +383,7 @@ export default function RetreatsPage() {
 
   // Client-side search
   const filtered = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase()
-    if (!q) return allRetreats
-    return allRetreats.filter(
-      (r) => r.name?.toLowerCase().includes(q) || r.location?.toLowerCase().includes(q)
-    )
+    return filterRetreats(searchTerm, allRetreats)
   }, [allRetreats, searchTerm])
 
   useEffect(() => { setPage(1) }, [searchTerm])

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,8 @@ import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
 import { EntityDialog } from '@/components/shared/entity-dialog'
 import { ConfirmDeleteDialog } from '@/components/shared/delete-dialog'
+import { SearchBar } from '@/components/shared/search-bar'
+import { matchesArabic } from '@/lib/arabic-search'
 import { useAuth } from '@/contexts/AuthContext'
 
 const servantFields = [
@@ -32,8 +34,17 @@ export default function ServantsPage() {
   const { user } = useAuth()
   const [servants, setServants] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const isAdmin = user?.role === 'Admin'
+
+  const filtered = useMemo(() => {
+    const q = searchTerm.trim()
+    if (!q) return servants
+    return servants.filter(
+      (s) => matchesArabic(q, s.name) || s.email?.toLowerCase().includes(q.toLowerCase())
+    )
+  }, [servants, searchTerm])
 
   async function fetchServants() {
     try {
@@ -78,7 +89,7 @@ export default function ServantsPage() {
         <div className="flex items-center gap-2">
           <UserCog className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-semibold">الخدام</h1>
-          <Badge variant="secondary">{servants.length}</Badge>
+          <Badge variant="secondary">{filtered.length}</Badge>
         </div>
         <EntityDialog
           title="إضافة خادم جديد"
@@ -94,11 +105,17 @@ export default function ServantsPage() {
         />
       </div>
 
+      <SearchBar
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="ابحث عن خادم بالاسم أو البريد..."
+      />
+
       {/* Desktop Table */}
       <Card className="hidden lg:block p-4 shadow-sm overflow-x-auto">
         <Table className="min-w-full text-right">
           <TableCaption>
-            {servants.length === 0 && !loading ? 'لا يوجد خدام' : `عدد الخدام: ${servants.length}`}
+            {filtered.length === 0 && !loading ? 'لا يوجد نتائج' : `عدد الخدام: ${filtered.length}`}
           </TableCaption>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -115,14 +132,14 @@ export default function ServantsPage() {
                   جاري التحميل...
                 </TableCell>
               </TableRow>
-            ) : servants.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
-                  لا يوجد خدام
+                  لا يوجد نتائج
                 </TableCell>
               </TableRow>
             ) : (
-              servants.map((s) => (
+              filtered.map((s) => (
                 <TableRow key={s._id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="font-medium">{s.name}</TableCell>
                   <TableCell className="text-muted-foreground">{s.email}</TableCell>
@@ -172,10 +189,10 @@ export default function ServantsPage() {
       <div className="lg:hidden space-y-3">
         {loading ? (
           <p className="text-center text-muted-foreground animate-pulse py-12">جاري التحميل...</p>
-        ) : servants.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">لا يوجد خدام</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-muted-foreground py-12">لا يوجد نتائج</p>
         ) : (
-          servants.map((s) => (
+          filtered.map((s) => (
             <Card key={s._id} className="p-4 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
