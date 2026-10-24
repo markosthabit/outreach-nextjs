@@ -386,7 +386,6 @@ function FocusedRetreatCard({
                   onConfirm={() => onRemoveServant(s._id)}
                   title="حذف خادم من الخلوة"
                   description={`هل أنت متأكد من حذف الخادم "${s.name}" من هذه الخلوة؟`}
-                  triggerLabel="حذف"
                 />
               </div>
             ))}
@@ -441,7 +440,6 @@ function FocusedRetreatCard({
                             onConfirm={() => onRemoveAttendee(a.id)}
                             title="حذف مخدوم"
                             description="هل أنت متأكد أنك ترغب في حذف هذا المخدوم من الخلوة؟"
-                            triggerLabel="حذف"
                           />
                         </div>
                       </TableCell>
@@ -477,7 +475,6 @@ function FocusedRetreatCard({
                     onConfirm={() => onRemoveAttendee(a.id)}
                     title="حذف مخدوم"
                     description="هل أنت متأكد أنك ترغب في حذف هذا المخدوم من الخلوة؟"
-                    triggerLabel="حذف"
                   />
                 </div>
               </Card>

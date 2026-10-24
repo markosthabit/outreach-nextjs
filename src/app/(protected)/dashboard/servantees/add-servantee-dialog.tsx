@@ -18,7 +18,13 @@ import { Badge } from '@/components/ui/badge'
 import { apiFetch } from '@/lib/api'
 import { findSimilarNames } from '@/lib/arabic-search'
 import { toast } from 'sonner'
-import { UserPlus, Users, UserCheck, AlertCircle } from 'lucide-react'
+import { UserPlus, Users, UserCheck, AlertCircle, Church, GraduationCap } from 'lucide-react'
+import { FuzzyAutocompleteInput } from '@/components/shared/fuzzy-autocomplete-input'
+import {
+  buildClusteredOptions,
+  normalizeChurchName,
+  normalizeCollegeName,
+} from '@/lib/servantee-filters'
 
 const servanteeSchema = z.object({
   name: z.string().min(1, 'الإسم مطلوب'),
@@ -35,11 +41,11 @@ type ServanteeFormData = z.infer<typeof servanteeSchema>
 const fields: { key: keyof ServanteeFormData; label: string }[] = [
   { key: 'name', label: 'الإسم' },
   { key: 'phone', label: 'التليفون' },
-  { key: 'diocese', label: 'الأبرشية' },
   { key: 'birthDate', label: 'تاريخ الميلاد' },
+  { key: 'diocese', label: 'الأبرشية' },
+  { key: 'year', label: 'الفرقة' },
   { key: 'church', label: 'الكنيسة' },
   { key: 'education', label: 'الدراسة' },
-  { key: 'year', label: 'الفرقة' },
 ]
 
 export type ServanteeResponse = {
@@ -106,6 +112,17 @@ export function AddServanteeDialog({
     })
   }, [deferredPhone, servanteesList])
 
+  // Clustered autocomplete suggestions for unstandardized fields
+  const churchOptions = useMemo(
+    () => buildClusteredOptions(servanteesList, (s) => s.church, normalizeChurchName),
+    [servanteesList]
+  )
+
+  const collegeOptions = useMemo(
+    () => buildClusteredOptions(servanteesList, (s) => s.education, normalizeCollegeName),
+    [servanteesList]
+  )
+
   const handleSelectExisting = async (servantee: ServanteeResponse) => {
     setOpen(false)
     form.reset()
@@ -162,13 +179,44 @@ export function AddServanteeDialog({
           {/* 2-col grid on sm+, single col on mobile */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {fields.map(({ key, label }) => (
-              <div key={key} className={key === 'name' ? 'sm:col-span-2' : ''}>
-                <Label className="text-sm">{label}</Label>
-                <Input
-                  type={key === 'birthDate' ? 'date' : 'text'}
-                  className="mt-1"
-                  {...form.register(key)}
-                />
+              <div key={key} className={key === 'name' || key === 'church' || key === 'education' ? 'sm:col-span-2' : ''}>
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  {key === 'church' && <Church className="h-3.5 w-3.5 text-primary" />}
+                  {key === 'education' && <GraduationCap className="h-3.5 w-3.5 text-primary" />}
+                  {label}
+                </Label>
+
+                {key === 'church' ? (
+                  <FuzzyAutocompleteInput
+                    id="church"
+                    value={form.watch('church') || ''}
+                    onChange={(val) => form.setValue('church', val, { shouldValidate: true, shouldDirty: true })}
+                    options={churchOptions}
+                    normalizer={normalizeChurchName}
+                    icon={<Church className="h-3.5 w-3.5" />}
+                    placeholder="اكتب اسم الكنيسة أو اختر من المقترحات..."
+                    labelTitle="الكنائس الأكثر تسجيلاً"
+                    className="mt-1"
+                  />
+                ) : key === 'education' ? (
+                  <FuzzyAutocompleteInput
+                    id="education"
+                    value={form.watch('education') || ''}
+                    onChange={(val) => form.setValue('education', val, { shouldValidate: true, shouldDirty: true })}
+                    options={collegeOptions}
+                    normalizer={normalizeCollegeName}
+                    icon={<GraduationCap className="h-3.5 w-3.5" />}
+                    placeholder="اكتب الكلية أو التخصص أو اختر من المقترحات..."
+                    labelTitle="الكليات الأكثر تسجيلاً"
+                    className="mt-1"
+                  />
+                ) : (
+                  <Input
+                    type={key === 'birthDate' ? 'date' : 'text'}
+                    className="mt-1"
+                    {...form.register(key)}
+                  />
+                )}
 
                 {form.formState.errors[key] && (
                   <p className="text-red-500 text-xs mt-1">

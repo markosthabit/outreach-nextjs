@@ -161,7 +161,6 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
                             onConfirm={() => handleDelete(note._id)}
                             title="حذف ملحوظة"
                             description="هل أنت متأكد أنك ترغب في حذف هذه الملحوظة؟"
-                            triggerLabel="حذف"
                           />
                         </div>
                       </>

@@ -13,39 +13,61 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Trash2 } from 'lucide-react'
 
 interface ConfirmDeleteDialogProps {
   /** Called when user confirms delete */
   onConfirm: () => void
-  /** Optional: Text shown in the delete button */
-  triggerLabel?: string
+  /** Optional: Custom trigger element */
+  trigger?: React.ReactNode
+  /** Optional: Text or node shown in the delete button */
+  triggerLabel?: React.ReactNode
   /** Optional: Dialog title */
   title?: string
   /** Optional: Dialog description */
   description?: string
   /** Optional: Customize button variant */
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary'
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost'
   /** Optional: Customize button size */
   size?: 'default' | 'sm' | 'lg' | 'icon'
+  /** Optional: Additional className for trigger button */
+  className?: string
   /** Optional: RTL mode toggle */
   rtl?: boolean
 }
 
 export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
   onConfirm,
-  triggerLabel = 'حذف',
+  trigger,
+  triggerLabel,
   title = 'تأكيد الحذف',
   description = 'هل أنت متأكد أنك ترغب في حذف هذا العنصر؟ لن يمكنك استرجاع البيانات مرة أخرى.',
   variant = 'destructive',
-  size = 'sm',
+  size = 'icon',
+  className,
   rtl = true,
 }) => {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant={variant} size={size} type="button">
-          {triggerLabel}
-        </Button>
+        {trigger ? (
+          trigger
+        ) : (
+          <Button
+            variant={variant}
+            size={size}
+            type="button"
+            className={className}
+            title={title}
+            aria-label={title}
+          >
+            {triggerLabel ? (
+              triggerLabel
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+          </Button>
+        )}
       </AlertDialogTrigger>
 
       <AlertDialogContent dir={rtl ? 'rtl' : 'ltr'} className={rtl ? 'text-right' : 'text-left'}>
