@@ -539,7 +539,12 @@ export default function RetreatsPage() {
     try {
       setLoading(true)
       const res = await apiFetch<{ retreats: Retreat[] }>('/api/retreats')
-      setAllRetreats(res.retreats ?? [])
+      const sorted = (res.retreats ?? []).sort((a, b) => {
+        const timeA = a.startDate ? new Date(a.startDate).getTime() : 0
+        const timeB = b.startDate ? new Date(b.startDate).getTime() : 0
+        return timeB - timeA
+      })
+      setAllRetreats(sorted)
     } catch (err) {
       console.error(err)
       toast.error('حدث خطأ أثناء تحميل الخلوات')

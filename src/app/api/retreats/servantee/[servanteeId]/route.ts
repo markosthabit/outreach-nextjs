@@ -13,6 +13,7 @@ export async function GET(
     const { servanteeId } = await params
 
     const retreats = await Retreat.find({ attendees: servanteeId })
+      .sort({ startDate: -1, createdAt: -1 })
       .populate('attendees', 'name phone church')
       .populate('notes', 'content createdAt')
 

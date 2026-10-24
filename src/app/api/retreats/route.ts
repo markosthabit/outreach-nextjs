@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     await connectDB()
 
     const retreats = await Retreat.find()
+      .sort({ startDate: -1, createdAt: -1 })
       .populate('attendees', 'name phone church')
       .populate({ path: 'servants', select: 'name email role', strictPopulate: false })
       .populate('notes', 'content createdAt')

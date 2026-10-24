@@ -24,6 +24,7 @@ export async function GET(
 
     const { Retreat } = await import('@/models/retreat.model')
     const attendedRetreats = await Retreat.find({ attendees: id })
+      .sort({ startDate: -1, createdAt: -1 })
       .select('name location startDate endDate')
       .lean()
 

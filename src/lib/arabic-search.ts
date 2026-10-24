@@ -270,12 +270,21 @@ export function filterServantees<
 
 /**
  * Searches and filters a list of retreats by name or location using Arabic normalization.
+ * Sorts retreats with newest first (by startDate descending).
  */
 export function filterRetreats<
-  T extends { name?: string; location?: string }
+  T extends { name?: string; location?: string; startDate?: string | Date }
 >(query: string, items: T[]): T[] {
+  const sortByDateDesc = (a: T, b: T) => {
+    const timeA = a.startDate ? new Date(a.startDate).getTime() : 0
+    const timeB = b.startDate ? new Date(b.startDate).getTime() : 0
+    return timeB - timeA
+  }
+
   const q = query.trim()
-  if (!q) return items
+  if (!q) {
+    return [...items].sort(sortByDateDesc)
+  }
 
   type ScoredItem = { item: T; score: number }
   const scored: ScoredItem[] = []
@@ -299,6 +308,12 @@ export function filterRetreats<
     }
   }
 
-  scored.sort((a, b) => b.score - a.score)
+  scored.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score
+    }
+    return sortByDateDesc(a.item, b.item)
+  })
   return scored.map((s) => s.item)
 }
+

@@ -14,7 +14,10 @@ export async function GET(req: NextRequest) {
       .lean()
 
     const { Retreat } = await import('@/models/retreat.model')
-    const allRetreats = await Retreat.find().select('name location startDate endDate attendees').lean()
+    const allRetreats = await Retreat.find()
+      .sort({ startDate: -1, createdAt: -1 })
+      .select('name location startDate endDate attendees')
+      .lean()
 
     const servanteesWithRetreats = servantees.map((s: any) => {
       const sId = s._id.toString()
