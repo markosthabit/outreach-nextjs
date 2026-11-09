@@ -13,6 +13,7 @@ import {
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
+  IconPhoneCall,
   IconReport,
   IconSearch,
   IconSettings,
@@ -49,7 +50,11 @@ const data = {
       url: "/dashboard",
       icon: IconDashboard,
     },
-
+    {
+      title: "الافتقاد",
+      url: "/dashboard/outreach",
+      icon: IconPhoneCall,
+    },
     {
       title: "المخدومين",
       url: "/dashboard/servantees",
@@ -58,9 +63,8 @@ const data = {
     {
       title: "الخلوات",
       url: "/dashboard/retreats",
-  icon: IconFolder,
+      icon: IconFolder,
     },
-
   ],
   navClouds: [
     {

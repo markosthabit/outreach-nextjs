@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { Servantee } from '@/models/servantee.model'
+import { OutreachAssignment } from '@/models/outreach-assignment.model'
+import { UserRole } from '@/models/user.model'
+import { Types } from 'mongoose'
 import { getAuthUser } from '@/lib/auth-helpers'
 
 // GET /api/servantees/:id
@@ -89,7 +92,18 @@ export async function DELETE(
   try {
     await connectDB()
 
+    const authUser = await getAuthUser(req)
+    if (!authUser) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
+    if (authUser.role !== UserRole.ADMIN) {
+      return NextResponse.json({ message: 'Only admins can delete servantees' }, { status: 403 })
+    }
+
     const { id } = await params
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ message: 'Invalid servantee id' }, { status: 400 })
+    }
 
     const servantee = await Servantee.findByIdAndDelete(id)
 
@@ -97,7 +111,13 @@ export async function DELETE(
       return NextResponse.json({ message: 'Servantee not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ message: 'Servantee deleted successfully' })
+    // Remove their outreach assignments so reports don't show orphaned "unknown" entries
+    const { deletedCount } = await OutreachAssignment.deleteMany({ servanteeId: servantee._id })
+
+    return NextResponse.json({
+      message: 'Servantee deleted successfully',
+      removedOutreachAssignments: deletedCount,
+    })
   } catch (error) {
     console.error('[DELETE /servantees/:id]', error)
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
