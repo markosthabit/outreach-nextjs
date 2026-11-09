@@ -1,64 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { Servantee } from '@/models/servantee.model'
+import { UserRole } from '@/models/user.model'
 import { getAuthUser } from '@/lib/auth-helpers'
+import { readJson } from '@/lib/api-utils'
+import { parseServanteeInput, type ServanteeInput } from '@/lib/servantee-input'
 
+const MAX_ROWS = 5000
+
+// POST /api/servantees/import — Admin only (matches the UI, which only shows import to admins)
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    
-    // Check if the user is an admin or has permissions
-    if (!authUser) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!authUser) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (authUser.role !== UserRole.ADMIN) {
+      return NextResponse.json({ message: 'Only admins can import servantees' }, { status: 403 })
     }
 
-    const body = await req.json()
-    const servantees = body.servantees
-
-    if (!Array.isArray(servantees)) {
+    const body = await readJson(req)
+    const rows = body?.servantees
+    if (!Array.isArray(rows)) {
       return NextResponse.json({ message: 'Invalid data format, expected array of servantees.' }, { status: 400 })
+    }
+    if (rows.length > MAX_ROWS) {
+      return NextResponse.json({ message: `لا يمكن استيراد أكثر من ${MAX_ROWS} صف في المرة الواحدة` }, { status: 400 })
+    }
+
+    const errors: string[] = []
+    const valid: { row: number; data: ServanteeInput }[] = []
+
+    rows.forEach((item, i) => {
+      const rowNo = i + 2 // +1 for 1-based, +1 for the header row
+      const parsed = parseServanteeInput(item, { partial: false })
+      if (parsed.error !== undefined) {
+        const label = typeof item?.name === 'string' && item.name.trim() ? ` (${item.name.trim()})` : ''
+        errors.push(`الصف رقم ${rowNo}${label}: ${parsed.error}`)
+      } else {
+        valid.push({ row: rowNo, data: parsed.data })
+      }
+    })
+
+    // One query for all existing phones instead of one per row
+    const existingPhones = new Set(
+      (await Servantee.find({ phone: { $in: valid.map((v) => v.data.phone) } }).select('phone').lean()).map(
+        (s: any) => s.phone
+      )
+    )
+
+    const seenInFile = new Set<string>()
+    const toInsert: any[] = []
+    for (const { row, data } of valid) {
+      if (existingPhones.has(data.phone)) {
+        errors.push(`الصف رقم ${row} (${data.name}): رقم التليفون ${data.phone} موجود مسبقاً.`)
+      } else if (seenInFile.has(data.phone!)) {
+        errors.push(`الصف رقم ${row} (${data.name}): رقم التليفون ${data.phone} مكرر في الملف.`)
+      } else {
+        seenInFile.add(data.phone!)
+        toInsert.push({ ...data, createdBy: authUser.sub, updatedBy: authUser.sub })
+      }
     }
 
     let importedCount = 0
-    let failedCount = 0
-    let errors = []
-
-    for (let i = 0; i < servantees.length; i++) {
-      const item = servantees[i]
-      
-      if (!item.name || !item.phone) {
-        failedCount++
-        errors.push(`الصف رقم ${i + 2}: الإسم والتليفون مطلوبان.`)
-        continue
-      }
-
+    if (toInsert.length > 0) {
       try {
-        // Ensure phone is a string and remove non-numeric chars for consistency if needed, but we'll leave as is
-        const phoneString = String(item.phone).trim()
-        
-        const existing = await Servantee.findOne({ phone: phoneString })
-        if (existing) {
-          failedCount++
-          errors.push(`الصف رقم ${i + 2} (${item.name}): رقم التليفون ${phoneString} موجود مسبقاً.`)
-          continue
-        }
-
-        await Servantee.create({
-          ...item,
-          phone: phoneString,
-          createdBy: authUser.sub,
-          updatedBy: authUser.sub,
-        })
-        
-        importedCount++
+        const inserted = await Servantee.insertMany(toInsert, { ordered: false })
+        importedCount = inserted.length
       } catch (err: any) {
-        failedCount++
-        errors.push(`الصف رقم ${i + 2} (${item.name}): ${err.message}`)
+        // ordered:false keeps going past duplicates; report what made it in
+        importedCount = err?.insertedDocs?.length ?? err?.result?.insertedCount ?? 0
+        errors.push(`تعذر حفظ ${toInsert.length - importedCount} صف بسبب تعارض في البيانات.`)
       }
     }
 
-    return NextResponse.json({ importedCount, failedCount, errors }, { status: 200 })
+    return NextResponse.json({
+      importedCount,
+      failedCount: rows.length - importedCount,
+      errors,
+    })
   } catch (error) {
     console.error('[POST /servantees/import]', error)
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 })

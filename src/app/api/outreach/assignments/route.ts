@@ -6,7 +6,7 @@ import { OutreachRound } from '@/models/outreach-round.model'
 import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { User } from '@/models/user.model'
 import { getAuthUser } from '@/lib/auth-helpers'
-import { byArabicName, isValidObjectId, jsonError } from '@/lib/outreach-api'
+import { byArabicName, isValidObjectId, jsonError } from '@/lib/api-utils'
 
 const MAX_ASSIGN_BATCH = 1000
 

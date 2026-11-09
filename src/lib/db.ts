@@ -44,6 +44,9 @@ export async function connectDB() {
     import('@/models/servantee.model'),
     import('@/models/retreat.model'),
     import('@/models/note.model'),
+    import('@/models/outreach-cycle.model'),
+    import('@/models/outreach-round.model'),
+    import('@/models/outreach-assignment.model'),
   ])
 
   return cached.conn;

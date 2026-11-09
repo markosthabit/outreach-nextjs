@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiFetch } from '@/lib/api'
+import { whatsappHref } from '@/lib/phone'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { ChevronLeft, ChevronRight, Search, FileDown } from 'lucide-react'
@@ -323,7 +324,7 @@ export default function SearchPage() {
                           {s.phone}
                           {s.phone && (
                             <a
-                              href={`https://wa.me/${s.phone.replace(/\D/g, '').replace(/^01/, '201')}`}
+                              href={whatsappHref(s.phone) ?? undefined}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center justify-center w-9 h-9 -ml-2 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"
@@ -354,7 +355,7 @@ export default function SearchPage() {
                       <p className="text-xs text-muted-foreground">{s.phone}</p>
                       {s.phone && (
                         <a
-                          href={`https://wa.me/${s.phone.replace(/\D/g, '').replace(/^01/, '201')}`}
+                          href={whatsappHref(s.phone) ?? undefined}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center justify-center w-11 h-11 -ml-3 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"

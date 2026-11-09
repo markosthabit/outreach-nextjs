@@ -3,7 +3,7 @@ import { connectDB } from '@/lib/db'
 import { OutreachRound } from '@/models/outreach-round.model'
 import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { getAuthUser } from '@/lib/auth-helpers'
-import { isValidObjectId, jsonError } from '@/lib/outreach-api'
+import { isValidObjectId, jsonError } from '@/lib/api-utils'
 
 // GET /api/outreach/report?roundId=...
 export async function GET(req: NextRequest) {

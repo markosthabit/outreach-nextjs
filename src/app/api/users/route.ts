@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/db'
-import { User } from '@/models/user.model'
+import { User, UserRole } from '@/models/user.model'
 import { getAuthUser } from '@/lib/auth-helpers'
-import { UserRole } from '@/models/user.model'
+import { isNonEmptyString, readJson } from '@/lib/api-utils'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // GET /api/users — Authenticated users
 export async function GET(req: NextRequest) {
@@ -11,13 +13,11 @@ export async function GET(req: NextRequest) {
     await connectDB()
 
     const authUser = await getAuthUser(req)
-
     if (!authUser) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    const users = await User.find().select('name email role')
-
+    const users = await User.find().select('name email role').sort({ name: 1 }).lean()
     return NextResponse.json({ users })
   } catch (error) {
     console.error('[GET /users]', error)
@@ -31,36 +31,38 @@ export async function POST(req: NextRequest) {
     await connectDB()
 
     const authUser = await getAuthUser(req)
-
     if (authUser?.role !== UserRole.ADMIN) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
     }
 
-    const { name, email, password, role } = await req.json()
+    const body = await readJson(req)
+    const { name, email, password, role } = body ?? {}
 
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { message: 'Name, email and password are required' },
-        { status: 400 }
-      )
+    if (!isNonEmptyString(name, 100) || typeof email !== 'string' || typeof password !== 'string') {
+      return NextResponse.json({ message: 'Name, email and password are required' }, { status: 400 })
+    }
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!EMAIL_RE.test(normalizedEmail) || normalizedEmail.length > 254) {
+      return NextResponse.json({ message: 'البريد الإلكتروني غير صالح' }, { status: 400 })
+    }
+    // The schema's minlength runs on the bcrypt hash (always 60 chars), so check the raw value here
+    if (password.length < 8 || password.length > 200) {
+      return NextResponse.json({ message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' }, { status: 400 })
+    }
+    if (role !== undefined && role !== null && role !== '' && !Object.values(UserRole).includes(role)) {
+      return NextResponse.json({ message: 'Invalid role' }, { status: 400 })
     }
 
-    const existing = await User.findOne({ email })
-
+    const existing = await User.exists({ email: normalizedEmail })
     if (existing) {
-      return NextResponse.json(
-        { message: 'A user with this email already exists' },
-        { status: 409 }
-      )
+      return NextResponse.json({ message: 'A user with this email already exists' }, { status: 409 })
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10)
 
     const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: role ?? UserRole.SERVANT,
+      name: name.trim(),
+      email: normalizedEmail,
+      password: await bcrypt.hash(password, 10),
+      role: role || UserRole.SERVANT,
     })
 
     return NextResponse.json(

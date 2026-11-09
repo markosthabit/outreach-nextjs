@@ -4,7 +4,7 @@ import { OutreachCycle } from '@/models/outreach-cycle.model'
 import { OutreachRound } from '@/models/outreach-round.model'
 import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { getAuthUser } from '@/lib/auth-helpers'
-import { isValidObjectId, jsonError, parseDate } from '@/lib/outreach-api'
+import { isValidObjectId, jsonError, parseDate } from '@/lib/api-utils'
 
 // GET /api/outreach/rounds?cycleId=...
 export async function GET(req: NextRequest) {

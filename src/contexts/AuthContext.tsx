@@ -27,7 +27,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/auth/profile', { credentials: 'include' });
+        let res = await fetch('/api/auth/profile', { credentials: 'include' });
+        // Access token expired → try the refresh token once before treating it as logged out
+        if (res.status === 401) {
+          const refreshed = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+          if (refreshed.ok) res = await fetch('/api/auth/profile', { credentials: 'include' });
+        }
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);

@@ -1,29 +1,36 @@
 // lib/jwt.ts
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
 
-const ACCESS_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
-const REFRESH_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
+type TokenType = 'access' | 'refresh'
 
-export async function signAccessToken(payload: object) {
-  return new SignJWT({ ...payload })
+function secret(): Uint8Array {
+  const value = process.env.JWT_SECRET
+  // Without this check a missing env var silently signs tokens with the string "undefined"
+  if (!value || value.length < 32) {
+    throw new Error('JWT_SECRET must be set to a random string of at least 32 characters')
+  }
+  return new TextEncoder().encode(value)
+}
+
+function sign(payload: object, typ: TokenType, expiresIn: string) {
+  return new SignJWT({ ...payload, typ })
     .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('15m')
-    .sign(ACCESS_SECRET);
+    .setIssuedAt()
+    .setExpirationTime(expiresIn)
+    .sign(secret())
 }
 
-export async function signRefreshToken(payload: object) {
-  return new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('7d')
-    .sign(REFRESH_SECRET);
+async function verify(token: string, typ: TokenType): Promise<JWTPayload> {
+  const { payload } = await jwtVerify(token, secret(), { algorithms: ['HS256'] })
+  // Access and refresh tokens share a key, so the type claim is what stops a
+  // 7-day refresh token from being replayed as an access token.
+  if (payload.typ !== typ || typeof payload.sub !== 'string') {
+    throw new Error(`Invalid ${typ} token`)
+  }
+  return payload
 }
 
-export async function verifyAccessToken(token: string) {
-  const { payload } = await jwtVerify(token, ACCESS_SECRET);
-  return payload;
-}
-
-export async function verifyRefreshToken(token: string) {
-  const { payload } = await jwtVerify(token, REFRESH_SECRET);
-  return payload;
-}
+export const signAccessToken = (payload: object) => sign(payload, 'access', '15m')
+export const signRefreshToken = (payload: object) => sign(payload, 'refresh', '7d')
+export const verifyAccessToken = (token: string) => verify(token, 'access')
+export const verifyRefreshToken = (token: string) => verify(token, 'refresh')

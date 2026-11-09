@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
+import { getAuthUser } from '@/lib/auth-helpers'
+import { isValidObjectId } from '@/lib/api-utils'
 import { Note } from '@/models/note.model'
 
 // GET /api/notes/retreats/:retreatId
@@ -11,6 +13,13 @@ export async function GET(
     await connectDB()
 
     const { retreatId } = await params
+
+    if (!(await getAuthUser(req))) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
+    if (!isValidObjectId(retreatId)) {
+      return NextResponse.json({ message: 'Invalid id' }, { status: 400 })
+    }
 
     const notes = await Note.find({ retreatId })
       .populate('retreatId', 'name location')

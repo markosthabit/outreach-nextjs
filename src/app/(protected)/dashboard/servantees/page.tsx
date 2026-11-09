@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { apiFetch } from '@/lib/api'
+import { whatsappHref } from '@/lib/phone'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -615,7 +616,7 @@ export default function ServanteesPage() {
                         <span dir="ltr" className="font-mono text-xs text-foreground/90">{s.phone || '-'}</span>
                         {s.phone && (
                           <a
-                            href={`https://wa.me/${s.phone.replace(/\D/g, '').replace(/^01/, '201')}`}
+                            href={whatsappHref(s.phone) ?? undefined}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center justify-center w-8 h-8 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"
@@ -722,7 +723,7 @@ export default function ServanteesPage() {
                     <p className="text-sm text-muted-foreground">{s.phone || '-'}</p>
                     {s.phone && (
                       <a
-                        href={`https://wa.me/${s.phone.replace(/\D/g, '').replace(/^01/, '201')}`}
+                        href={whatsappHref(s.phone) ?? undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center w-11 h-11 -ml-3 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"

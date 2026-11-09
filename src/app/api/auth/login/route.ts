@@ -3,59 +3,61 @@ import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/db'
 import { User } from '@/models/user.model'
 import { signAccessToken, signRefreshToken } from '@/lib/jwt'
+import { setAccessCookie, setRefreshCookie } from '@/lib/auth-cookies'
+import { readJson } from '@/lib/api-utils'
+import { clientIp, rateLimit, resetRateLimit } from '@/lib/rate-limit'
+
+const MAX_ATTEMPTS = 10
+const WINDOW_MS = 15 * 60 * 1000
 
 export async function POST(req: NextRequest) {
   try {
+    const body = await readJson(req)
+    const email = body?.email
+    const password = body?.password
+
+    // Strict types: an object like {"$ne": null} must never reach the Mongo query
+    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
+      return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
+    }
+    if (email.length > 254 || password.length > 200) {
+      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
+    }
+
+    const normalizedEmail = email.trim().toLowerCase()
+    const limiterKey = `login:${clientIp(req)}:${normalizedEmail}`
+    const limit = rateLimit(limiterKey, MAX_ATTEMPTS, WINDOW_MS)
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { message: 'محاولات تسجيل دخول كثيرة. حاول مرة أخرى بعد قليل.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+      )
+    }
+
     await connectDB()
 
-    const { email, password } = await req.json()
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { message: 'Email and password are required' },
-        { status: 400 }
-      )
-    }
-
     // select: false fields must be explicitly selected
-    const user = await User.findOne({ email }).select('+password +refreshTokenHash')
+    const user = await User.findOne({ email: normalizedEmail }).select('+password')
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return NextResponse.json(
-        { message: 'Invalid credentials' },
-        { status: 401 }
-      )
+      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
     }
+
+    resetRateLimit(limiterKey)
 
     const payload = { sub: user._id.toString(), role: user.role }
     const accessToken = await signAccessToken(payload)
     const refreshToken = await signRefreshToken(payload)
 
-    // Hash and store the refresh token
+    // Store only a hash of the refresh token
     const refreshTokenHash = await bcrypt.hash(refreshToken, 10)
     await User.findByIdAndUpdate(user._id, { refreshTokenHash })
 
     const response = NextResponse.json({
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     })
-
-    // Set HTTP-only cookies
-    response.cookies.set('access_token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 15, // 15 minutes
-      path: '/',
-    })
-
-    response.cookies.set('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/',
-    })
-
+    setAccessCookie(response, accessToken)
+    setRefreshCookie(response, refreshToken)
     return response
   } catch (error) {
     console.error('[LOGIN]', error)

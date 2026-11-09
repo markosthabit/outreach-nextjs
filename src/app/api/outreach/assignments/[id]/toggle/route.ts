@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { getAuthUser } from '@/lib/auth-helpers'
-import { isValidObjectId, jsonError } from '@/lib/outreach-api'
+import { isValidObjectId, jsonError } from '@/lib/api-utils'
 
 const MAX_NOTE_LENGTH = 2000
 

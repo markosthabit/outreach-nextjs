@@ -1,20 +1,4 @@
-/** Digits-only phone for `tel:` links. */
-export function telHref(phone?: string | null): string | null {
-  const digits = phone?.replace(/[^\d+]/g, '')
-  return digits ? `tel:${digits}` : null
-}
-
-/**
- * WhatsApp link for Egyptian numbers. Handles local (01xxxxxxxxx),
- * international (201xxxxxxxxx / +201… / 00201…) formats.
- */
-export function whatsappHref(phone?: string | null): string | null {
-  let digits = phone?.replace(/\D/g, '') || ''
-  if (!digits) return null
-  if (digits.startsWith('00')) digits = digits.slice(2)
-  if (digits.startsWith('0')) digits = `2${digits}`
-  return `https://wa.me/${digits}`
-}
+export { telHref, whatsappHref } from '@/lib/phone'
 
 /** YYYY-MM-DD in the user's local timezone (toISOString would use UTC). */
 export function toLocalDateInput(d: Date): string {

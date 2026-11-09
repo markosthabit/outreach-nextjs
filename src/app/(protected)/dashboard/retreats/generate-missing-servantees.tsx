@@ -25,7 +25,7 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
 
   // Extract the retreat object correctly
   const retreatRes = await apiFetch<{ retreat: any }>(`/api/retreats/${retreatId}`)
-  const attendeeIds = (retreatRes.retreat?.attendees || []).map((a: any) =>
+  const attendeeIds = (retreatRes.retreat?.attendees || []).filter(Boolean).map((a: any) =>
     typeof a === 'string' ? a : a._id
   )
 

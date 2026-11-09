@@ -1,24 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { Note } from '@/models/note.model'
+import { getAuthUser } from '@/lib/auth-helpers'
+import { isNonEmptyString, isValidObjectId, readJson } from '@/lib/api-utils'
+
+const MAX_NOTE_LENGTH = 5000 // keep in sync with src/app/api/notes/route.ts
+
+type Ctx = { params: Promise<{ noteId: string }> }
+
+async function guard(req: NextRequest, params: Ctx['params']) {
+  await connectDB()
+  if (!(await getAuthUser(req))) return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) }
+  const { noteId } = await params
+  if (!isValidObjectId(noteId)) return { error: NextResponse.json({ message: 'Invalid note id' }, { status: 400 }) }
+  return { noteId }
+}
 
 // GET /api/notes/:noteId
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ noteId: string }> }
-) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   try {
-    await connectDB()
+    const g = await guard(req, params)
+    if (g.error) return g.error
 
-    const { noteId } = await params
-
-    const note = await Note.findById(noteId)
+    const note = await Note.findById(g.noteId)
       .populate('servanteeId', 'name phone')
       .populate('retreatId', 'name location')
-
-    if (!note) {
-      return NextResponse.json({ message: 'Note not found' }, { status: 404 })
-    }
+    if (!note) return NextResponse.json({ message: 'Note not found' }, { status: 404 })
 
     return NextResponse.json({ note })
   } catch (error) {
@@ -27,51 +34,23 @@ export async function GET(
   }
 }
 
-// PATCH /api/notes/:noteId
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ noteId: string }> }
-) {
+// PATCH /api/notes/:noteId — only the content can be edited (moving a note between records isn't a UI feature)
+export async function PATCH(req: NextRequest, { params }: Ctx) {
   try {
-    await connectDB()
+    const g = await guard(req, params)
+    if (g.error) return g.error
 
-    const { noteId } = await params
-    const body = await req.json()
-
-    // If the update is trying to change associations, re-validate
-    if (body.servanteeId !== undefined || body.retreatId !== undefined) {
-      const existing = await Note.findById(noteId)
-
-      if (!existing) {
-        return NextResponse.json({ message: 'Note not found' }, { status: 404 })
-      }
-
-      const servanteeId = body.servanteeId ?? existing.servanteeId
-      const retreatId = body.retreatId ?? existing.retreatId
-
-      if (!servanteeId && !retreatId) {
-        return NextResponse.json(
-          { message: 'A note must be associated with a servantee or a retreat.' },
-          { status: 400 }
-        )
-      }
-
-      if (servanteeId && retreatId) {
-        return NextResponse.json(
-          { message: 'A note cannot be associated with both a servantee and a retreat.' },
-          { status: 400 }
-        )
-      }
+    const body = await readJson(req)
+    if (!isNonEmptyString(body?.content, MAX_NOTE_LENGTH)) {
+      return NextResponse.json({ message: 'Content is required' }, { status: 400 })
     }
 
-    const note = await Note.findByIdAndUpdate(noteId, body, {
-      new: true,
-      runValidators: true,
-    })
-
-    if (!note) {
-      return NextResponse.json({ message: 'Note not found' }, { status: 404 })
-    }
+    const note = await Note.findByIdAndUpdate(
+      g.noteId,
+      { $set: { content: body.content.trim() } },
+      { new: true, runValidators: true }
+    )
+    if (!note) return NextResponse.json({ message: 'Note not found' }, { status: 404 })
 
     return NextResponse.json({ note })
   } catch (error) {
@@ -81,20 +60,13 @@ export async function PATCH(
 }
 
 // DELETE /api/notes/:noteId
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ noteId: string }> }
-) {
+export async function DELETE(req: NextRequest, { params }: Ctx) {
   try {
-    await connectDB()
+    const g = await guard(req, params)
+    if (g.error) return g.error
 
-    const { noteId } = await params
-
-    const note = await Note.findByIdAndDelete(noteId)
-
-    if (!note) {
-      return NextResponse.json({ message: 'Note not found' }, { status: 404 })
-    }
+    const note = await Note.findByIdAndDelete(g.noteId)
+    if (!note) return NextResponse.json({ message: 'Note not found' }, { status: 404 })
 
     return NextResponse.json({ message: 'Note deleted successfully' })
   } catch (error) {

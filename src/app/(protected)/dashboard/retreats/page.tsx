@@ -82,16 +82,17 @@ function AttendeePicker({
     try {
       setLoading(true)
       const res = await apiFetch<{ retreat: Retreat }>(`/api/retreats/${retreatId}`)
-      const existing = (res.retreat.attendees || []).map((a: any) =>
-        typeof a === 'string' ? a : a._id
-      )
+      const existing = (res.retreat.attendees || [])
+        .filter(Boolean)
+        .map((a: any) => (typeof a === 'string' ? a : a._id))
       if (existing.includes(servanteeId)) {
         toast.error('المخدوم مضاف بالفعل')
         return
       }
+      // Atomic add on the server — no read-modify-write race with other editors
       await apiFetch(`/api/retreats/${retreatId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ attendees: [...existing, servanteeId] }),
+        body: JSON.stringify({ addAttendees: [servanteeId] }),
       })
       toast.success('تمت إضافة المخدوم إلى الخلوة بنجاح')
       onAdded()
@@ -186,16 +187,16 @@ function ServantPicker({
     try {
       setLoading(true)
       const res = await apiFetch<{ retreat: Retreat }>(`/api/retreats/${retreatId}`)
-      const existing = (res.retreat.servants || []).map((s: any) =>
-        typeof s === 'string' ? s : s._id
-      )
+      const existing = (res.retreat.servants || [])
+        .filter(Boolean)
+        .map((s: any) => (typeof s === 'string' ? s : s._id))
       if (existing.includes(servantId)) {
         toast.error('الخادم مضاف بالفعل للخلوة')
         return
       }
       await apiFetch(`/api/retreats/${retreatId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ servants: [...existing, servantId] }),
+        body: JSON.stringify({ addServants: [servantId] }),
       })
       toast.success('تمت إضافة الخادم إلى الخلوة بنجاح')
       onAdded()
@@ -268,7 +269,7 @@ function FocusedRetreatCard({
   const attendeeLimit = 10
 
   const servants = useMemo(() => {
-    return ((retreat.servants || []) as any[]).map((s) => {
+    return ((retreat.servants || []) as any[]).filter(Boolean).map((s) => {
       const id = typeof s === 'string' ? s : s._id
       const name = typeof s === 'string' ? 'خادم' : s.name || 'غير معروف'
       const email = typeof s === 'string' ? '' : s.email || ''
@@ -278,7 +279,7 @@ function FocusedRetreatCard({
   }, [retreat.servants])
 
   const attendees = useMemo(() => {
-    return ((retreat.attendees || []) as any[]).map((a) => {
+    return ((retreat.attendees || []) as any[]).filter(Boolean).map((a) => {
       const id = typeof a === 'string' ? a : a._id
       const name = typeof a === 'string' ? a : a.name || 'غير معروف'
       const phone = typeof a === 'string' ? '-' : a.phone || '-'
@@ -573,30 +574,32 @@ export default function RetreatsPage() {
 
   const handleRemoveAttendee = async (servanteeId: string) => {
     if (!selectedRetreat) return
-    const existing = (selectedRetreat.attendees || []).map((a: any) =>
-      typeof a === 'string' ? a : a._id
-    )
-    await apiFetch(`/api/retreats/${selectedRetreat._id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ attendees: existing.filter((id) => id !== servanteeId) }),
-    })
-    toast.success('تم حذف المخدوم من الخلوة')
-    await refreshFocused()
-    fetchRetreats()
+    try {
+      await apiFetch(`/api/retreats/${selectedRetreat._id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ removeAttendees: [servanteeId] }),
+      })
+      toast.success('تم حذف المخدوم من الخلوة')
+      await refreshFocused()
+      fetchRetreats()
+    } catch (err: any) {
+      toast.error(err?.message || 'فشل حذف المخدوم من الخلوة')
+    }
   }
 
   const handleRemoveServant = async (servantId: string) => {
     if (!selectedRetreat) return
-    const existing = (selectedRetreat.servants || []).map((s: any) =>
-      typeof s === 'string' ? s : s._id
-    )
-    await apiFetch(`/api/retreats/${selectedRetreat._id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ servants: existing.filter((id) => id !== servantId) }),
-    })
-    toast.success('تم حذف الخادم من الخلوة')
-    await refreshFocused()
-    fetchRetreats()
+    try {
+      await apiFetch(`/api/retreats/${selectedRetreat._id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ removeServants: [servantId] }),
+      })
+      toast.success('تم حذف الخادم من الخلوة')
+      await refreshFocused()
+      fetchRetreats()
+    } catch (err: any) {
+      toast.error(err?.message || 'فشل حذف الخادم من الخلوة')
+    }
   }
 
   return (
@@ -832,7 +835,7 @@ export default function RetreatsPage() {
               <TabsContent value="servants" className="mt-2">
                 <ServantPicker
                   retreatId={selectedRetreat._id}
-                  currentServantIds={((selectedRetreat.servants || []) as any[]).map(
+                  currentServantIds={((selectedRetreat.servants || []) as any[]).filter(Boolean).map(
                     (s) => (typeof s === 'string' ? s : s._id)
                   )}
                   allServants={allServants}
