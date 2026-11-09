@@ -97,7 +97,7 @@ export default function OutreachPage() {
       }
     } catch (err) {
       console.error('Failed to load outreach data:', err)
-      toast.error('فشل تحميل بيانات الافتقاد')
+      toast.error('معرفناش نحمّل بيانات الافتقاد')
     } finally {
       setInitialLoading(false)
     }
@@ -109,7 +109,7 @@ export default function OutreachPage() {
       const usersRes = await apiFetch<{ users: any[] }>('/api/users')
       setServants(usersRes.users || [])
     } catch {
-      toast.error('فشل تحميل قائمة الخدام')
+      toast.error('معرفناش نحمّل قايمة الخدام')
     }
   }, [isAdmin])
 
@@ -127,7 +127,7 @@ export default function OutreachPage() {
       if (requestId === reportRequestRef.current) setReportData(res)
     } catch (err) {
       console.error('Failed to load report:', err)
-      if (requestId === reportRequestRef.current) toast.error('فشل تحميل تقرير الجولة')
+      if (requestId === reportRequestRef.current) toast.error('معرفناش نحمّل تقرير الجولة')
     } finally {
       if (requestId === reportRequestRef.current) setLoadingReport(false)
     }
@@ -141,7 +141,7 @@ export default function OutreachPage() {
       setServantAssignments(res.assignments || [])
     } catch (err) {
       console.error('Failed to load assignments:', err)
-      toast.error('فشل تحميل تكليفات الافتقاد')
+      toast.error('معرفناش نحمّل تكليفات الافتقاد')
     } finally {
       setLoadingServantData(false)
     }
@@ -178,10 +178,10 @@ export default function OutreachPage() {
         body: JSON.stringify({ isCalled: newState }),
       })
       setReportData((prev: any) => patchReport(prev, assignmentId, res.assignment))
-      toast.success(newState ? 'تم تسجيل الاتصال بالمخدوم' : 'تم إلغاء علامة الاتصال')
+      toast.success(newState ? 'اتسجل إن المخدوم اتكلم' : 'شيلنا علامة الاتصال')
       fetchData() // refresh round stats in the background
     } catch (err: any) {
-      toast.error(err?.message || 'فشل تحديث الحالة')
+      toast.error(err?.message || 'معرفناش نحدّث الحالة')
     }
   }
 
@@ -192,10 +192,10 @@ export default function OutreachPage() {
         { method: 'DELETE' }
       )
       setReportData((prev: any) => patchReport(prev, assignmentId, null))
-      toast.success(res.message || 'تم إلغاء التكليف')
+      toast.success(res.message || 'التكليف اتشال')
       fetchData()
     } catch (err: any) {
-      toast.error(err?.message || 'فشل إلغاء التكليف')
+      toast.error(err?.message || 'معرفناش نشيل التكليف')
     }
   }
 
@@ -211,10 +211,10 @@ export default function OutreachPage() {
         method: 'PATCH',
         body: JSON.stringify({ roundId, status: nextStatus }),
       })
-      toast.success(nextStatus === 'active' ? 'تم إعادة تنشيط الجولة' : 'تم تعليم الجولة كمكتملة')
+      toast.success(nextStatus === 'active' ? 'الجولة رجعت تشتغل' : 'الجولة خلصت')
       await fetchData()
     } catch (err: any) {
-      toast.error(err?.message || 'فشل تعديل حالة الجولة')
+      toast.error(err?.message || 'معرفناش نغيّر حالة الجولة')
     } finally {
       setTogglingRoundId(null)
     }
@@ -228,9 +228,9 @@ export default function OutreachPage() {
       const servantsSummaryData = reportData.servants.map((s: any) => ({
         'اسم الخادم': s.servant?.name || '',
         'البريد الإلكتروني': s.servant?.email || '',
-        'إجمالي المكلفين': s.assignedCount,
-        'تم الاتصال': s.calledCount,
-        'لم يتم الاتصال': s.notCalledCount,
+        'عدد المكلفين': s.assignedCount,
+        'اتكلموا': s.calledCount,
+        'لسه متكلموش': s.notCalledCount,
         'نسبة الإنجاز': `${s.completionPercentage}%`,
       }))
 
@@ -250,7 +250,7 @@ export default function OutreachPage() {
           'رقم الهاتف': a.servanteeId?.phone || '',
           'الكنيسة': a.servanteeId?.church || '',
           'التعليم': a.servanteeId?.education || '',
-          'حالة الافتقاد': a.isCalled ? 'تم الاتصال' : 'لم يتم الاتصال',
+          'حالة الافتقاد': a.isCalled ? 'اتكلم' : 'لسه متكلمش',
           'تاريخ الاتصال': a.calledAt ? new Date(a.calledAt).toLocaleString('ar-EG') : '-',
           'المتصل': a.calledBy?.name || '-',
           'ملاحظات': a.notes || '',
@@ -260,16 +260,16 @@ export default function OutreachPage() {
       const wb = XLSX.utils.book_new()
       wb.Workbook = { Views: [{ RTL: true }] }
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(servantsSummaryData), 'ملخص الخدام')
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(uncalledData), 'لم يتم الاتصال بهم')
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allData), 'كافة التكليفات')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(uncalledData), 'لسه متكلموش')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allData), 'كل التكليفات')
 
       // Strip characters that are invalid in file names
       const roundName = (reportData.round?.name || 'جولة_الافتقاد').replace(/[\\/:*?"<>|]/g, '-')
       XLSX.writeFile(wb, `تقرير_الافتقاد_${roundName}.xlsx`)
-      toast.success('تم تصدير ملف الإكسيل بنجاح')
+      toast.success('ملف الإكسيل نزل')
     } catch (err) {
       console.error(err)
-      toast.error('فشل تصدير ملف الإكسيل')
+      toast.error('معرفناش نطلّع ملف الإكسيل')
     }
   }
 
@@ -305,7 +305,7 @@ export default function OutreachPage() {
                 <>
                   <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    الدورة النشطة:
+                    الدورة الشغالة:
                   </span>
                   <Badge variant="secondary" className="font-bold text-xs">
                     {activeCycle.name}
@@ -314,8 +314,8 @@ export default function OutreachPage() {
               ) : (
                 <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 font-medium">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                  لا توجد دورة نشطة حالياً
-                  {isAdmin ? '. ابدأ دورة جديدة للبدء.' : '.'}
+                  مفيش دورة شغالة دلوقتي
+                  {isAdmin ? '. ابدأ دورة جديدة عشان تبدأ.' : '.'}
                 </span>
               )}
             </div>
@@ -335,7 +335,7 @@ export default function OutreachPage() {
                     setCycleDialogOpen(true)
                   }}
                 >
-                  إنهاء الدورة
+                  إنهي الدورة
                 </Button>
                 <Button size="sm" className="gap-1.5 text-xs shadow-xs" onClick={() => setCreateRoundOpen(true)}>
                   <Plus className="h-4 w-4" />
@@ -352,7 +352,7 @@ export default function OutreachPage() {
                 }}
               >
                 <Plus className="h-4 w-4" />
-                بدء دورة افتقاد جديدة
+                ابدأ دورة افتقاد جديدة
               </Button>
             )}
           </div>
@@ -382,9 +382,9 @@ export default function OutreachPage() {
             {rounds.length === 0 ? (
               <EmptyState
                 icon={<Calendar className="h-10 w-10 mx-auto text-muted-foreground/40" />}
-                title={activeCycle ? 'لا توجد جولات في هذه الدورة بعد' : 'لا توجد دورة نشطة'}
+                title={activeCycle ? 'لسه مفيش جولات في الدورة دي' : 'مفيش دورة شغالة'}
                 description={
-                  activeCycle ? 'أنشئ جولة افتقاد جديدة لبدء توزيع المخدومين.' : 'ابدأ دورة افتقاد جديدة أولاً.'
+                  activeCycle ? 'اعمل جولة افتقاد جديدة عشان تبدأ توزع المخدومين.' : 'ابدأ دورة افتقاد جديدة الأول.'
                 }
                 action={
                   activeCycle ? (
@@ -402,7 +402,7 @@ export default function OutreachPage() {
                       }}
                     >
                       <Plus className="h-4 w-4" />
-                      بدء دورة
+                      ابدأ دورة
                     </Button>
                   )
                 }
@@ -415,12 +415,12 @@ export default function OutreachPage() {
                     <span className="text-sm font-semibold shrink-0">تقرير الجولة:</span>
                     <Select value={selectedRoundId} onValueChange={setSelectedRoundId}>
                       <SelectTrigger className="w-full min-[480px]:w-[240px] bg-background" dir="rtl">
-                        <SelectValue placeholder="اختر الجولة..." />
+                        <SelectValue placeholder="اختار الجولة..." />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
                         {rounds.map((r) => (
                           <SelectItem key={r._id} value={r._id}>
-                            {r.name} {r.status === 'active' ? '(نشطة)' : '(مكتملة)'}
+                            {r.name} {r.status === 'active' ? '(شغالة)' : '(خلصت)'}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -441,30 +441,30 @@ export default function OutreachPage() {
                     className="gap-2 text-xs font-semibold bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/20 shrink-0"
                   >
                     <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-                    تصدير Excel
+                    نزّل Excel
                   </Button>
                 </div>
 
                 {/* Summary metrics */}
                 {reportData ? (
                   <div className={cn('grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4', loadingReport && 'opacity-60')}>
-                    <MetricCard label="إجمالي المكلفين" value={reportData.summary.totalAssigned} hint="في هذه الجولة" />
+                    <MetricCard label="عدد المكلفين" value={reportData.summary.totalAssigned} hint="في الجولة دي" />
                     <MetricCard
-                      label="تم الاتصال بهم"
+                      label="اتكلموا"
                       value={reportData.summary.totalCalled}
-                      hint="مكالمات مسجلة"
+                      hint="مكالمات متسجلة"
                       tone="emerald"
                     />
                     <MetricCard
-                      label="لم يتم الاتصال"
+                      label="لسه متكلموش"
                       value={reportData.summary.totalNotCalled}
-                      hint="متبقي افتقادهم"
+                      hint="فاضل نفتقدهم"
                       tone="rose"
                     />
                     <MetricCard
                       label="نسبة الإنجاز"
                       value={`${reportData.summary.completionPercentage}%`}
-                      hint="معدل التغطية"
+                      hint="قد إيه خلصنا"
                       tone="primary"
                     />
                   </div>
@@ -482,7 +482,7 @@ export default function OutreachPage() {
                 <div className="space-y-3">
                   <div>
                     <h3 className="font-bold text-base sm:text-lg text-foreground">أداء الخدام في الجولة</h3>
-                    <p className="text-xs text-muted-foreground">اضغط على بطاقة الخادم لعرض مخدوميه وتحديث حالتهم.</p>
+                    <p className="text-xs text-muted-foreground">دوس على كارت الخادم عشان تشوف مخدومينه وتحدّث حالتهم.</p>
                   </div>
 
                   {loadingReport && !reportData ? (
@@ -494,8 +494,8 @@ export default function OutreachPage() {
                   ) : !reportData || reportData.servants.length === 0 ? (
                     <EmptyState
                       icon={<Users className="h-10 w-10 mx-auto text-muted-foreground/40" />}
-                      title="لا توجد تكليفات في هذه الجولة بعد"
-                      description='توجه إلى تبويب "التوزيع" لإسناد مخدومين للخدام.'
+                      title="لسه مفيش تكليفات في الجولة دي"
+                      description='روح لتبويب "التوزيع" عشان توزع مخدومين على الخدام.'
                     />
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -583,7 +583,7 @@ export default function OutreachPage() {
               <CardHeader className="p-4 sm:p-6 flex flex-row items-start justify-between gap-3">
                 <div className="space-y-1">
                   <CardTitle className="text-base sm:text-lg">جولات الدورة الحالية</CardTitle>
-                  <CardDescription>فترات الجولات وحالتها ونسب الإنجاز.</CardDescription>
+                  <CardDescription>مواعيد الجولات وحالتها وقد إيه خلصت.</CardDescription>
                 </div>
                 <Button size="sm" onClick={() => setCreateRoundOpen(true)} disabled={!activeCycle} className="gap-1.5 text-xs shrink-0">
                   <Plus className="h-4 w-4" />
@@ -606,7 +606,7 @@ export default function OutreachPage() {
                     {rounds.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          لا توجد جولات في هذه الدورة حتى الآن.
+                          لسه مفيش جولات في الدورة دي.
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -641,9 +641,9 @@ export default function OutreachPage() {
                               {togglingRoundId === r._id ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               ) : r.status === 'active' ? (
-                                'إنهاء'
+                                'إنهيها'
                               ) : (
-                                'إعادة تنشيط'
+                                'رجّعها'
                               )}
                             </Button>
                           </TableCell>
@@ -658,7 +658,7 @@ export default function OutreachPage() {
             <Card className="border shadow-xs gap-0 py-0 overflow-hidden">
               <CardHeader className="p-4 sm:p-6 space-y-1">
                 <CardTitle className="text-base sm:text-lg">سجل دورات الافتقاد</CardTitle>
-                <CardDescription>كل الدورات السابقة والحالية.</CardDescription>
+                <CardDescription>كل الدورات اللي فاتت واللي شغالة.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <Table className="w-full text-right" dir="rtl">
@@ -674,7 +674,7 @@ export default function OutreachPage() {
                     {cycles.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                          لا توجد دورات مسجلة بعد.
+                          لسه مفيش دورات متسجلة.
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -686,14 +686,14 @@ export default function OutreachPage() {
                             {c.endedAt ? (
                               formatDate(c.endedAt)
                             ) : (
-                              <span className="text-emerald-600 font-medium">مستمرة</span>
+                              <span className="text-emerald-600 font-medium">لسه شغالة</span>
                             )}
                           </TableCell>
                           <TableCell className="text-right hidden sm:table-cell">
                             {c.status === 'active' ? (
-                              <Badge className="bg-emerald-600 text-white text-xs">نشطة</Badge>
+                              <Badge className="bg-emerald-600 text-white text-xs">شغالة</Badge>
                             ) : (
-                              <Badge variant="outline" className="text-xs">منتهية</Badge>
+                              <Badge variant="outline" className="text-xs">خلصت</Badge>
                             )}
                           </TableCell>
                         </TableRow>
@@ -749,9 +749,9 @@ export default function OutreachPage() {
 
 function RoundStatusBadge({ status }: { status: string }) {
   return status === 'active' ? (
-    <Badge className="bg-emerald-600 text-white text-[11px]">نشطة</Badge>
+    <Badge className="bg-emerald-600 text-white text-[11px]">شغالة</Badge>
   ) : (
-    <Badge variant="outline" className="text-muted-foreground text-[11px]">مكتملة</Badge>
+    <Badge variant="outline" className="text-muted-foreground text-[11px]">خلصت</Badge>
   )
 }
 

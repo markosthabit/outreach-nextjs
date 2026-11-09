@@ -106,7 +106,7 @@ export function AssignServanteesSection({
       const res = await apiFetch<{ servantees: any[] }>('/api/outreach/eligible-servantees')
       setEligibleServantees(res.servantees ?? [])
     } catch {
-      toast.error('فشل تحميل قائمة المخدومين المتاحين للافتقاد')
+      toast.error('معرفناش نحمّل المخدومين المتاحين للافتقاد')
     } finally {
       setLoading(false)
     }
@@ -164,7 +164,7 @@ export function AssignServanteesSection({
   function handleQuickSelect() {
     const candidates = filteredServantees.filter((s) => !selectedIds.has(s._id)).slice(0, quota)
     if (candidates.length === 0) {
-      toast.info('كل المخدومين المعروضين محددون بالفعل')
+      toast.info('كل المخدومين اللي قدامك متحددين خلاص')
       return
     }
     setSelectedIds((prev) => {
@@ -172,7 +172,7 @@ export function AssignServanteesSection({
       candidates.forEach((s) => next.add(s._id))
       return next
     })
-    toast.info(`تم تحديد ${candidates.length} مخدوم إضافي`)
+    toast.info(`اتحدد ${candidates.length} مخدوم كمان`)
   }
 
   function handleToggleRow(id: string) {
@@ -204,9 +204,9 @@ export function AssignServanteesSection({
   }
 
   async function handleAssignSubmit() {
-    if (!selectedRoundId) return toast.error('يرجى اختيار الجولة المستهدفة')
-    if (!selectedServantId) return toast.error('يرجى اختيار الخادم المكلف')
-    if (selectedIds.size === 0) return toast.error('يرجى تحديد مخدوم واحد على الأقل')
+    if (!selectedRoundId) return toast.error('اختار الجولة الأول')
+    if (!selectedServantId) return toast.error('اختار الخادم الأول')
+    if (selectedIds.size === 0) return toast.error('حدد مخدوم واحد على الأقل')
 
     try {
       setAssigning(true)
@@ -227,7 +227,7 @@ export function AssignServanteesSection({
       fetchEligibleServantees()
       onSuccess()
     } catch (err: any) {
-      toast.error(err?.message || 'فشل إسناد المخدومين')
+      toast.error(err?.message || 'التوزيع فشل، جرّب تاني')
     } finally {
       setAssigning(false)
     }
@@ -243,12 +243,12 @@ export function AssignServanteesSection({
         <CardContent className="space-y-2">
           <AlertCircle className="h-10 w-10 mx-auto text-amber-500/60" />
           <p className="font-semibold text-foreground">
-            {!hasActiveCycle ? 'لا توجد دورة افتقاد نشطة' : 'لا توجد جولة نشطة لإسناد المخدومين إليها'}
+            {!hasActiveCycle ? 'مفيش دورة افتقاد شغالة' : 'مفيش جولة شغالة توزع عليها المخدومين'}
           </p>
           <p className="text-xs">
             {!hasActiveCycle
-              ? 'ابدأ دورة جديدة من الأعلى أولاً، ثم أنشئ جولة.'
-              : 'أنشئ جولة جديدة أو أعد تنشيط جولة من تبويب "الجولات والدورات".'}
+              ? 'ابدأ دورة جديدة من فوق الأول، وبعدين اعمل جولة.'
+              : 'اعمل جولة جديدة أو رجّع جولة قديمة من تبويب "الجولات والدورات".'}
           </p>
         </CardContent>
       </Card>
@@ -264,10 +264,10 @@ export function AssignServanteesSection({
       {assigning ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <UserCheck className="h-4 w-4 shrink-0" />}
       <span className="truncate">
         {assigning
-          ? 'جاري الإسناد...'
+          ? 'بنوزّع...'
           : selectedServant
-          ? `إسناد ${selectedIds.size} لـ ${selectedServant.name}`
-          : 'اختر الخادم أولاً'}
+          ? `وزّع ${selectedIds.size} على ${selectedServant.name}`
+          : 'اختار الخادم الأول'}
       </span>
     </Button>
   )
@@ -279,9 +279,9 @@ export function AssignServanteesSection({
         <CardHeader className="px-4 sm:px-6">
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">
             <UserCheck className="h-5 w-5 text-primary shrink-0" />
-            <span>وجهة التكليف</span>
+            <span>هتوزع على مين؟</span>
           </CardTitle>
-          <CardDescription>اختر الجولة والخادم، ثم حدد المخدومين من القائمة.</CardDescription>
+          <CardDescription>اختار الجولة والخادم، وبعدين حدد المخدومين من القايمة.</CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -289,7 +289,7 @@ export function AssignServanteesSection({
               <Label className="text-xs font-semibold block">الجولة المستهدفة</Label>
               <Select value={selectedRoundId} onValueChange={setSelectedRoundId}>
                 <SelectTrigger className="w-full bg-background" dir="rtl">
-                  <SelectValue placeholder="اختر جولة الافتقاد..." />
+                  <SelectValue placeholder="اختار جولة الافتقاد..." />
                 </SelectTrigger>
                 <SelectContent dir="rtl">
                   {assignableRounds.map((r) => (
@@ -305,7 +305,7 @@ export function AssignServanteesSection({
               <Label className="text-xs font-semibold block">الخادم المكلف</Label>
               <Select value={selectedServantId} onValueChange={setSelectedServantId}>
                 <SelectTrigger className="w-full bg-background" dir="rtl">
-                  <SelectValue placeholder="اختر الخادم..." />
+                  <SelectValue placeholder="اختار الخادم..." />
                 </SelectTrigger>
                 <SelectContent dir="rtl" className="max-h-72">
                   {sortedServants.map((s) => (
@@ -319,7 +319,7 @@ export function AssignServanteesSection({
             </div>
 
             <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
-              <Label htmlFor="quota" className="text-xs font-semibold block">تحديد سريع لعدد</Label>
+              <Label htmlFor="quota" className="text-xs font-semibold block">حدد عدد بسرعة</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="quota"
@@ -340,7 +340,7 @@ export function AssignServanteesSection({
                   disabled={filteredServantees.length === 0}
                 >
                   <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                  <span>حدد {quota} من المعروض</span>
+                  <span>حدد {quota} من اللي قدامك</span>
                 </Button>
               </div>
             </div>
@@ -362,7 +362,7 @@ export function AssignServanteesSection({
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             type="search"
-            placeholder="بحث بالاسم أو الهاتف أو الكنيسة..."
+            placeholder="دوّر بالاسم أو التليفون أو الكنيسة..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pr-9 bg-background"
@@ -389,7 +389,7 @@ export function AssignServanteesSection({
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={handleResetFilters} className="gap-1 text-xs text-muted-foreground hover:text-foreground">
               <RotateCcw className="h-3.5 w-3.5" />
-              مسح الفلاتر
+              امسح الفلاتر
             </Button>
           )}
         </div>
@@ -399,15 +399,15 @@ export function AssignServanteesSection({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 p-3 rounded-xl border">
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <Button variant="outline" size="sm" onClick={handleSelectAllFiltered} disabled={filteredServantees.length === 0} className="text-xs">
-            {allFilteredSelected ? 'إلغاء تحديد المعروض' : `تحديد كل المعروض (${filteredServantees.length})`}
+            {allFilteredSelected ? 'شيل تحديد اللي قدامك' : `حدد كل اللي قدامك (${filteredServantees.length})`}
           </Button>
           {selectedIds.size > 0 && (
             <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-xs text-destructive hover:text-destructive">
-              مسح التحديد
+              شيل التحديد
             </Button>
           )}
           <span className="text-xs text-muted-foreground">
-            المعروض <strong className="tabular-nums">{filteredServantees.length}</strong> من{' '}
+            قدامك <strong className="tabular-nums">{filteredServantees.length}</strong> من{' '}
             <strong className="tabular-nums">{eligibleServantees.length}</strong> متاح
           </span>
         </div>
@@ -429,12 +429,12 @@ export function AssignServanteesSection({
                 <Checkbox
                   checked={allFilteredSelected}
                   onCheckedChange={handleSelectAllFiltered}
-                  aria-label="تحديد كل المعروض"
+                  aria-label="حدد كل اللي قدامك"
                   disabled={filteredServantees.length === 0}
                 />
               </TableHead>
               <TableHead className="text-right">الاسم</TableHead>
-              <TableHead className="text-right hidden sm:table-cell">الهاتف</TableHead>
+              <TableHead className="text-right hidden sm:table-cell">التليفون</TableHead>
               <TableHead className="text-right hidden md:table-cell">الكنيسة</TableHead>
               <TableHead className="text-right hidden lg:table-cell">الكلية / التعليم</TableHead>
               <TableHead className="text-right hidden xl:table-cell">الإيبارشية</TableHead>
@@ -445,15 +445,15 @@ export function AssignServanteesSection({
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
-                  جاري تحميل المخدومين المتاحين...
+                  بنحمّل المخدومين المتاحين...
                 </TableCell>
               </TableRow>
             ) : filteredServantees.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12 text-muted-foreground whitespace-normal">
                   {eligibleServantees.length === 0
-                    ? 'تم تكليف كافة المخدومين في هذه الدورة!'
-                    : 'لا توجد نتائج تطابق الفلاتر المحددة.'}
+                    ? 'كل المخدومين اتوزعوا في الدورة دي!'
+                    : 'مفيش نتايج بالفلاتر دي.'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -470,7 +470,7 @@ export function AssignServanteesSection({
                       <Checkbox
                         checked={isChecked}
                         onCheckedChange={() => handleToggleRow(s._id)}
-                        aria-label={`تحديد ${s.name}`}
+                        aria-label={`حدد ${s.name}`}
                       />
                     </TableCell>
                     <TableCell className="text-right whitespace-normal py-2.5">
@@ -498,7 +498,7 @@ export function AssignServanteesSection({
         {!loading && filteredServantees.length > renderLimit && (
           <div className="p-3 border-t text-center">
             <Button variant="ghost" size="sm" className="text-xs" onClick={() => setRenderLimit((n) => n + RENDER_STEP * 2)}>
-              عرض المزيد ({filteredServantees.length - renderLimit} متبقي)
+              اعرض كمان ({filteredServantees.length - renderLimit} فاضلين)
             </Button>
           </div>
         )}

@@ -18,10 +18,10 @@ export async function POST(req: NextRequest) {
 
     // Strict types: an object like {"$ne": null} must never reach the Mongo query
     if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
-      return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
+      return NextResponse.json({ message: 'اكتب الإيميل وكلمة السر' }, { status: 400 })
     }
     if (email.length > 254 || password.length > 200) {
-      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
+      return NextResponse.json({ message: 'الإيميل أو كلمة السر غلط' }, { status: 401 })
     }
 
     const normalizedEmail = email.trim().toLowerCase()
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const limit = rateLimit(limiterKey, MAX_ATTEMPTS, WINDOW_MS)
     if (!limit.allowed) {
       return NextResponse.json(
-        { message: 'محاولات تسجيل دخول كثيرة. حاول مرة أخرى بعد قليل.' },
+        { message: 'جربت تدخل كتير، استنى شوية وجرّب تاني' },
         { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
       )
     }
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const user = await User.findOne({ email: normalizedEmail }).select('+password')
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
+      return NextResponse.json({ message: 'الإيميل أو كلمة السر غلط' }, { status: 401 })
     }
 
     resetRateLimit(limiterKey)
@@ -61,13 +61,13 @@ export async function POST(req: NextRequest) {
     return response
   } catch (error) {
     console.error('[LOGIN]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }
 
 export async function GET() {
   return NextResponse.json(
-    { message: 'Method Not Allowed. Login credentials must be sent via POST.' },
+    { message: 'الطريقة دي مش مسموحة' },
     { status: 405 }
   )
 }

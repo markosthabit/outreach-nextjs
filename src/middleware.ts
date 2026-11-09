@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
 
     if (!(await hasValidAccessToken(accessToken))) {
       // 401 lets the client call /api/auth/refresh and retry
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
     }
     return NextResponse.next()
   }

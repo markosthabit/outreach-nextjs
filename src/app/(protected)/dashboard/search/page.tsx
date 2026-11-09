@@ -76,7 +76,7 @@ export default function SearchPage() {
         setRetreats(sorted)
         setServantees(servanteesRes.servantees ?? [])
       } catch {
-        toast.error('حدث خطأ أثناء تحميل البيانات')
+        toast.error('حصلت مشكلة وإحنا بنحمّل البيانات')
       }
     }
     load()
@@ -85,7 +85,7 @@ export default function SearchPage() {
   // ── Search ──────────────────────────────────────────────────────────────────
   function handleSearch() {
     if (!startRetreatId || !endRetreatId) {
-      toast.info('يرجى اختيار خلوة البداية والنهاية')
+      toast.info('اختار خلوة البداية والنهاية')
       return
     }
 
@@ -140,7 +140,7 @@ export default function SearchPage() {
 
   // ── Export PDF ──────────────────────────────────────────────────────────────
   const handleExportPDF = async () => {
-    if (filtered.length === 0) { toast.info('لا يوجد بيانات للتصدير'); return }
+    if (filtered.length === 0) { toast.info('مفيش بيانات تتنزّل'); return }
     try {
       setLoadingPdf(true)
       const [{ default: jsPDF }, { default: autoTable, applyPlugin }] = await Promise.all([
@@ -161,9 +161,9 @@ export default function SearchPage() {
         startY: 70,
       })
       doc.save('نتائج_البحث.pdf')
-      toast.success('تم إنشاء ملف PDF بنجاح ✅')
+      toast.success('ملف الـ PDF نزل ✅')
     } catch {
-      toast.error('حدث خطأ أثناء إنشاء ملف PDF')
+      toast.error('حصلت مشكلة وإحنا بنعمل الـ PDF')
     } finally {
       setLoadingPdf(false)
     }
@@ -171,7 +171,7 @@ export default function SearchPage() {
 
   // ── Export Excel ────────────────────────────────────────────────────────────
   const handleExportExcel = async () => {
-    if (filtered.length === 0) { toast.info('لا يوجد بيانات للتصدير'); return }
+    if (filtered.length === 0) { toast.info('مفيش بيانات تتنزّل'); return }
     try {
       setLoadingExcel(true)
       const XLSX = await import('xlsx')
@@ -181,9 +181,9 @@ export default function SearchPage() {
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Results')
       XLSX.writeFile(workbook, 'نتائج_البحث.xlsx')
-      toast.success('تم إنشاء ملف Excel بنجاح ✅')
+      toast.success('ملف الإكسيل نزل ✅')
     } catch {
-      toast.error('حدث خطأ أثناء إنشاء ملف Excel')
+      toast.error('حصلت مشكلة وإحنا بنعمل الإكسيل')
     } finally {
       setLoadingExcel(false)
     }
@@ -194,7 +194,7 @@ export default function SearchPage() {
     <div className="p-4 lg:p-6 space-y-6" dir="rtl">
       <div className="flex items-center gap-2">
         <Search className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-semibold">بحث الحضور في الخلوات</h1>
+        <h1 className="text-2xl font-semibold">دوّر على حضور الخلوات</h1>
       </div>
 
       {/* Filters */}
@@ -205,7 +205,7 @@ export default function SearchPage() {
             <label className="text-sm font-medium">من خلوة</label>
             <Select onValueChange={setStartRetreatId}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="اختر البداية" />
+                <SelectValue placeholder="اختار البداية" />
               </SelectTrigger>
               <SelectContent>
                 {retreats.map((r) => (
@@ -221,7 +221,7 @@ export default function SearchPage() {
             <label className="text-sm font-medium">إلى خلوة</label>
             <Select onValueChange={setEndRetreatId}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="اختر النهاية" />
+                <SelectValue placeholder="اختار النهاية" />
               </SelectTrigger>
               <SelectContent>
                 {retreats.map((r) => (
@@ -244,7 +244,7 @@ export default function SearchPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="attended">حضر</SelectItem>
-                <SelectItem value="notAttended">لم يحضر</SelectItem>
+                <SelectItem value="notAttended">محضرش</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -252,7 +252,7 @@ export default function SearchPage() {
 
         <Button className="w-full lg:w-auto gap-2" onClick={handleSearch}>
           <Search className="h-4 w-4" />
-          بحث
+          دوّر
         </Button>
       </Card>
 
@@ -272,7 +272,7 @@ export default function SearchPage() {
               className="gap-1"
             >
               <FileDown className="h-4 w-4" />
-              {loadingPdf ? 'جارٍ إنشاء PDF...' : 'PDF'}
+              {loadingPdf ? 'بنعمل الـ PDF...' : 'PDF'}
             </Button>
             <Button
               variant="outline"
@@ -282,7 +282,7 @@ export default function SearchPage() {
               className="gap-1"
             >
               <FileDown className="h-4 w-4" />
-              {loadingExcel ? 'جارٍ إنشاء Excel...' : 'Excel'}
+              {loadingExcel ? 'بنعمل الإكسيل...' : 'Excel'}
             </Button>
           </div>
         </div>
@@ -295,8 +295,8 @@ export default function SearchPage() {
             <Table className="min-w-full text-right">
               <TableCaption>
                 {filtered.length === 0
-                  ? 'لا يوجد نتائج'
-                  : `عرض ${paginated.length} من ${filtered.length} — صفحة ${page} / ${totalPages}`}
+                  ? 'مفيش نتايج'
+                  : `قدامك ${paginated.length} من ${filtered.length} — صفحة ${page} / ${totalPages}`}
               </TableCaption>
               <TableHeader>
                 <TableRow className="bg-muted/50">
@@ -309,7 +309,7 @@ export default function SearchPage() {
                 {paginated.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center text-muted-foreground py-12">
-                      لا يوجد نتائج
+                      مفيش نتايج
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -328,7 +328,7 @@ export default function SearchPage() {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center justify-center w-9 h-9 -ml-2 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"
-                              title="مراسلة واتساب"
+                              title="ابعتله واتساب"
                             >
                               <IconBrandWhatsapp size={20} stroke={1.5} />
                             </a>
@@ -345,7 +345,7 @@ export default function SearchPage() {
           {/* Results Cards (mobile) */}
           <div className="lg:hidden space-y-2">
             {paginated.length === 0 ? (
-              <p className="text-center text-muted-foreground py-12">لا يوجد نتائج</p>
+              <p className="text-center text-muted-foreground py-12">مفيش نتايج</p>
             ) : (
               paginated.map((s, i) => (
                 <Card key={s._id} className="p-3 flex items-center justify-between">
@@ -359,7 +359,7 @@ export default function SearchPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center justify-center w-11 h-11 -ml-3 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"
-                          title="مراسلة واتساب"
+                          title="ابعتله واتساب"
                         >
                           <IconBrandWhatsapp size={24} stroke={1.5} />
                         </a>
@@ -383,7 +383,7 @@ export default function SearchPage() {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
               >
-                <ChevronRight className="h-4 w-4 ml-1" /> السابق
+                <ChevronRight className="h-4 w-4 ml-1" /> اللي قبل
               </Button>
               <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
               <Button
@@ -392,7 +392,7 @@ export default function SearchPage() {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
               >
-                التالي <ChevronLeft className="h-4 w-4 mr-1" />
+                اللي بعد <ChevronLeft className="h-4 w-4 mr-1" />
               </Button>
             </div>
           )}

@@ -111,13 +111,13 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
 
           {loading ? (
             <p className="text-center text-sm text-muted-foreground animate-pulse">
-              جاري التحميل...
+              بنحمّل...
             </p>
           ) : (
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {notes.length === 0 ? (
                 <p className="text-center text-muted-foreground py-6">
-                  لا توجد ملاحظات بعد
+                  لسه مفيش ملاحظات
                 </p>
               ) : (
                 notes.map((note) => (
@@ -133,9 +133,9 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
                           rows={3}
                         />
                         <div className="flex justify-end gap-2 mt-2">
-                          <Button size="sm" onClick={handleUpdate}>حفظ</Button>
+                          <Button size="sm" onClick={handleUpdate}>احفظ</Button>
                           <Button size="sm" variant="outline" onClick={() => setEditingNote(null)}>
-                            إلغاء
+                            رجوع
                           </Button>
                         </div>
                       </div>
@@ -159,8 +159,8 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
                           </Button>
                           <ConfirmDeleteDialog
                             onConfirm={() => handleDelete(note._id)}
-                            title="حذف ملحوظة"
-                            description="هل أنت متأكد أنك ترغب في حذف هذه الملحوظة؟"
+                            title="تمسح الملاحظة؟"
+                            description="متأكد إنك عايز تمسح الملاحظة دي؟"
                           />
                         </div>
                       </>
@@ -174,13 +174,13 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
           <DialogFooter className="flex flex-col gap-3 pt-3">
             <div className="flex gap-2">
               <Input
-                placeholder="أضف ملاحظة جديدة..."
+                placeholder="ضيف ملاحظة جديدة..."
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
               />
               <Button onClick={handleCreate}>
-                <Plus className="w-4 h-4 mr-1" /> إضافة
+                <Plus className="w-4 h-4 mr-1" /> ضيف
               </Button>
             </div>
           </DialogFooter>

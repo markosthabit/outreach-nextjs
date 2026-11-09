@@ -24,7 +24,7 @@ export function useEntityList<T>(endpoint: string, limit = 10) {
       setData(res.data || res)
       setHasMore(!res.pages || page < res.pages)
     } catch (err: any) {
-      setError(err.message || 'خطأ في تحميل البيانات')
+      setError(err.message || 'حصلت مشكلة وإحنا بنحمّل البيانات')
     } finally {
       setLoading(false)
     }

@@ -12,31 +12,31 @@ const MAX_NOTE_LENGTH = 5000 // keep in sync with src/app/api/notes/[noteId]/rou
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
-    if (!(await getAuthUser(req))) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!(await getAuthUser(req))) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
 
     const body = await readJson(req)
     const { content, servanteeId, retreatId } = body ?? {}
 
     if (!isNonEmptyString(content, MAX_NOTE_LENGTH)) {
-      return NextResponse.json({ message: 'Content is required' }, { status: 400 })
+      return NextResponse.json({ message: 'اكتب الملاحظة الأول' }, { status: 400 })
     }
     if (!servanteeId && !retreatId) {
       return NextResponse.json(
-        { message: 'A note must be associated with a servantee or a retreat.' },
+        { message: 'الملاحظة لازم تبقى على مخدوم أو خلوة' },
         { status: 400 }
       )
     }
     if (servanteeId && retreatId) {
       return NextResponse.json(
-        { message: 'A note cannot be associated with both a servantee and a retreat.' },
+        { message: 'الملاحظة مينفعش تبقى على مخدوم وخلوة في نفس الوقت' },
         { status: 400 }
       )
     }
 
     const targetId = servanteeId || retreatId
-    if (!isValidObjectId(targetId)) return NextResponse.json({ message: 'Invalid id' }, { status: 400 })
+    if (!isValidObjectId(targetId)) return NextResponse.json({ message: 'المعرّف غلط' }, { status: 400 })
     const exists = servanteeId ? await Servantee.exists({ _id: targetId }) : await Retreat.exists({ _id: targetId })
-    if (!exists) return NextResponse.json({ message: 'Target not found' }, { status: 404 })
+    if (!exists) return NextResponse.json({ message: 'المكان اللي عايز تضيف عليه الملاحظة مش موجود' }, { status: 404 })
 
     // Whitelisted fields only
     const note = await Note.create({
@@ -47,6 +47,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ note }, { status: 201 })
   } catch (error) {
     console.error('[POST /notes]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }

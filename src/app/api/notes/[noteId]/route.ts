@@ -10,9 +10,9 @@ type Ctx = { params: Promise<{ noteId: string }> }
 
 async function guard(req: NextRequest, params: Ctx['params']) {
   await connectDB()
-  if (!(await getAuthUser(req))) return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) }
+  if (!(await getAuthUser(req))) return { error: NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 }) }
   const { noteId } = await params
-  if (!isValidObjectId(noteId)) return { error: NextResponse.json({ message: 'Invalid note id' }, { status: 400 }) }
+  if (!isValidObjectId(noteId)) return { error: NextResponse.json({ message: 'معرّف الملاحظة غلط' }, { status: 400 }) }
   return { noteId }
 }
 
@@ -25,12 +25,12 @@ export async function GET(req: NextRequest, { params }: Ctx) {
     const note = await Note.findById(g.noteId)
       .populate('servanteeId', 'name phone')
       .populate('retreatId', 'name location')
-    if (!note) return NextResponse.json({ message: 'Note not found' }, { status: 404 })
+    if (!note) return NextResponse.json({ message: 'الملاحظة مش موجودة' }, { status: 404 })
 
     return NextResponse.json({ note })
   } catch (error) {
     console.error('[GET /notes/:noteId]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }
 
@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 
     const body = await readJson(req)
     if (!isNonEmptyString(body?.content, MAX_NOTE_LENGTH)) {
-      return NextResponse.json({ message: 'Content is required' }, { status: 400 })
+      return NextResponse.json({ message: 'اكتب الملاحظة الأول' }, { status: 400 })
     }
 
     const note = await Note.findByIdAndUpdate(
@@ -50,12 +50,12 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       { $set: { content: body.content.trim() } },
       { new: true, runValidators: true }
     )
-    if (!note) return NextResponse.json({ message: 'Note not found' }, { status: 404 })
+    if (!note) return NextResponse.json({ message: 'الملاحظة مش موجودة' }, { status: 404 })
 
     return NextResponse.json({ note })
   } catch (error) {
     console.error('[PATCH /notes/:noteId]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }
 
@@ -66,11 +66,11 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
     if (g.error) return g.error
 
     const note = await Note.findByIdAndDelete(g.noteId)
-    if (!note) return NextResponse.json({ message: 'Note not found' }, { status: 404 })
+    if (!note) return NextResponse.json({ message: 'الملاحظة مش موجودة' }, { status: 404 })
 
-    return NextResponse.json({ message: 'Note deleted successfully' })
+    return NextResponse.json({ message: 'الملاحظة اتمسحت' })
   } catch (error) {
     console.error('[DELETE /notes/:noteId]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }

@@ -38,7 +38,7 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
       const missing = await getMissingServantees()
 
       if (missing.length === 0) {
-        toast.info("كل المخدومين مشاركين في الخلوة 🎉")
+        toast.info("كل المخدومين حاضرين الخلوة 🎉")
         return
       }
 
@@ -48,7 +48,7 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
       doc.setFont("Amiri")
       doc.setFontSize(16)
 
-      doc.text(`قائمة المخدومين غير المشاركين في خلوة ${retreatName}`, 550, 60, {
+      doc.text(`المخدومين اللي محضروش خلوة ${retreatName}`, 550, 60, {
         align: "right",
       })
 
@@ -71,11 +71,11 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
         margin: { right: 40, left: 40 },
       })
 
-      doc.save(`المخدومين_غير_المشاركين_${retreatName}.pdf`)
-      toast.success("تم إنشاء ملف PDF بنجاح ✅")
+      doc.save(`اللي_محضروش_${retreatName}.pdf`)
+      toast.success("ملف الـ PDF نزل ✅")
     } catch (err) {
       console.error(err)
-      toast.error("حدث خطأ أثناء إنشاء ملف PDF")
+      toast.error("حصلت مشكلة وإحنا بنعمل الـ PDF")
     } finally {
       setLoadingPdf(false)
     }
@@ -87,7 +87,7 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
       const missing = await getMissingServantees()
 
       if (missing.length === 0) {
-        toast.info("كل المخدومين مشاركين في الخلوة 🎉")
+        toast.info("كل المخدومين حاضرين الخلوة 🎉")
         return
       }
 
@@ -96,11 +96,11 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, "Missing")
 
-      XLSX.writeFile(workbook, `المخدومين_غير_المشاركين_${retreatName}.xlsx`)
-      toast.success("تم إنشاء ملف Excel بنجاح ✅")
+      XLSX.writeFile(workbook, `اللي_محضروش_${retreatName}.xlsx`)
+      toast.success("ملف الإكسيل نزل ✅")
     } catch (err) {
       console.error(err)
-      toast.error("حدث خطأ أثناء إنشاء ملف Excel")
+      toast.error("حصلت مشكلة وإحنا بنعمل الإكسيل")
     } finally {
       setLoadingExcel(false)
     }
@@ -109,11 +109,11 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
   return (
     <div className="flex flex-col gap-2">
       <Button onClick={handleGeneratePDF} disabled={loadingPdf}>
-        {loadingPdf ? "جارٍ إنشاء PDF..." : "تصدير غير المشاركين PDF"}
+        {loadingPdf ? "بنعمل الـ PDF..." : "نزّل اللي محضروش PDF"}
       </Button>
 
       <Button onClick={handleGenerateExcel} disabled={loadingExcel}>
-        {loadingExcel ? "جارٍ إنشاء Excel..." : "تصدير غير المشاركين Excel"}
+        {loadingExcel ? "بنعمل الإكسيل..." : "نزّل اللي محضروش Excel"}
       </Button>
     </div>
   )

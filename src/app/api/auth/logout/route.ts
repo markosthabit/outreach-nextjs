@@ -6,7 +6,7 @@ import { verifyRefreshToken } from '@/lib/jwt'
 import { clearAuthCookies } from '@/lib/auth-cookies'
 
 export async function POST(req: NextRequest) {
-  const response = NextResponse.json({ message: 'Logged out successfully' })
+  const response = NextResponse.json({ message: 'خرجت من حسابك' })
   // Always clear cookies, even if revoking server-side fails
   clearAuthCookies(response)
 

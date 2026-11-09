@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.message || 'Login failed');
+      throw new Error(err.message || 'تسجيل الدخول فشل');
     }
 
     const data = await res.json();

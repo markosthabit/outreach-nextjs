@@ -47,6 +47,7 @@ export async function connectDB() {
     import('@/models/outreach-cycle.model'),
     import('@/models/outreach-round.model'),
     import('@/models/outreach-assignment.model'),
+    import('@/models/audit-log.model'),
   ])
 
   return cached.conn;

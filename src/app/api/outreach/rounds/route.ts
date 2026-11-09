@@ -11,12 +11,12 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser) return jsonError('Unauthorized', 401)
+    if (!authUser) return jsonError('لازم تسجل دخول الأول', 401)
 
     const { searchParams } = new URL(req.url)
     let cycleId = searchParams.get('cycleId')
 
-    if (cycleId && !isValidObjectId(cycleId)) return jsonError('معرّف الدورة غير صالح', 400)
+    if (cycleId && !isValidObjectId(cycleId)) return jsonError('معرّف الدورة غلط', 400)
 
     if (!cycleId) {
       const activeCycle = await OutreachCycle.findOne({ status: 'active' }).lean()
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ rounds: roundsWithStats })
   } catch (error) {
     console.error('[GET /api/outreach/rounds]', error)
-    return jsonError('حدث خطأ في الخادم', 500)
+    return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)
   }
 }
 
@@ -67,25 +67,25 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser || authUser.role !== 'Admin') return jsonError('غير مصرح لك بهذا الإجراء', 403)
+    if (!authUser || authUser.role !== 'Admin') return jsonError('مش مسموحلك تعمل كده', 403)
 
     const { cycleId, name, startDate, endDate } = await req.json()
 
     if (!name || typeof name !== 'string' || !name.trim()) {
-      return jsonError('اسم الجولة مطلوب', 400)
+      return jsonError('اكتب اسم الجولة', 400)
     }
     const start = parseDate(startDate)
     const end = parseDate(endDate)
-    if (!start || !end) return jsonError('يرجى تحديد تاريخ بداية ونهاية صالحين', 400)
-    if (start > end) return jsonError('تاريخ البداية يجب أن يكون قبل تاريخ النهاية', 400)
+    if (!start || !end) return jsonError('حدد تاريخ بداية ونهاية صح', 400)
+    if (start > end) return jsonError('تاريخ البداية لازم يبقى قبل تاريخ النهاية', 400)
 
-    if (cycleId && !isValidObjectId(cycleId)) return jsonError('معرّف الدورة غير صالح', 400)
+    if (cycleId && !isValidObjectId(cycleId)) return jsonError('معرّف الدورة غلط', 400)
 
     const cycle = cycleId
       ? await OutreachCycle.findById(cycleId)
       : await OutreachCycle.findOne({ status: 'active' })
-    if (!cycle) return jsonError('لا توجد دورة نشطة. يرجى بدء دورة أولاً.', 400)
-    if (cycle.status !== 'active') return jsonError('لا يمكن إضافة جولة لدورة منتهية', 400)
+    if (!cycle) return jsonError('مفيش دورة شغالة، ابدأ دورة الأول', 400)
+    if (cycle.status !== 'active') return jsonError('مينفعش تضيف جولة لدورة خلصت', 400)
 
     const newRound = await OutreachRound.create({
       cycleId: cycle._id,
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ round: newRound }, { status: 201 })
   } catch (error) {
     console.error('[POST /api/outreach/rounds]', error)
-    return jsonError('حدث خطأ في الخادم', 500)
+    return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)
   }
 }
 
@@ -108,20 +108,20 @@ export async function PATCH(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser || authUser.role !== 'Admin') return jsonError('غير مصرح لك بهذا الإجراء', 403)
+    if (!authUser || authUser.role !== 'Admin') return jsonError('مش مسموحلك تعمل كده', 403)
 
     const { roundId, status, name, startDate, endDate } = await req.json()
-    if (!isValidObjectId(roundId)) return jsonError('معرّف الجولة غير صالح', 400)
+    if (!isValidObjectId(roundId)) return jsonError('معرّف الجولة غلط', 400)
 
     const round = await OutreachRound.findById(roundId)
-    if (!round) return jsonError('الجولة غير موجودة', 404)
+    if (!round) return jsonError('الجولة مش موجودة', 404)
 
     if (status !== undefined) {
-      if (!['active', 'completed'].includes(status)) return jsonError('حالة غير صالحة', 400)
+      if (!['active', 'completed'].includes(status)) return jsonError('الحالة غلط', 400)
       if (status === 'active') {
         const cycle = await OutreachCycle.findById(round.cycleId).lean()
         if (!cycle || (cycle as any).status !== 'active') {
-          return jsonError('لا يمكن إعادة تنشيط جولة في دورة منتهية', 400)
+          return jsonError('مينفعش ترجّع جولة في دورة خلصت', 400)
         }
       }
       round.status = status
@@ -129,23 +129,23 @@ export async function PATCH(req: NextRequest) {
     if (typeof name === 'string' && name.trim()) round.name = name.trim()
     if (startDate !== undefined) {
       const d = parseDate(startDate)
-      if (!d) return jsonError('تاريخ البداية غير صالح', 400)
+      if (!d) return jsonError('تاريخ البداية غلط', 400)
       round.startDate = d
     }
     if (endDate !== undefined) {
       const d = parseDate(endDate)
-      if (!d) return jsonError('تاريخ النهاية غير صالح', 400)
+      if (!d) return jsonError('تاريخ النهاية غلط', 400)
       round.endDate = d
     }
     if (round.startDate > round.endDate) {
-      return jsonError('تاريخ البداية يجب أن يكون قبل تاريخ النهاية', 400)
+      return jsonError('تاريخ البداية لازم يبقى قبل تاريخ النهاية', 400)
     }
 
     await round.save()
     return NextResponse.json({ round })
   } catch (error) {
     console.error('[PATCH /api/outreach/rounds]', error)
-    return jsonError('حدث خطأ في الخادم', 500)
+    return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)
   }
 }
 

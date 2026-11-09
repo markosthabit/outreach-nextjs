@@ -16,10 +16,10 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!authUser) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
 
     const { id } = await params
-    if (!isValidObjectId(id)) return NextResponse.json({ message: 'Invalid servantee id' }, { status: 400 })
+    if (!isValidObjectId(id)) return NextResponse.json({ message: 'معرّف المخدوم غلط' }, { status: 400 })
 
     const servantee = await Servantee.findById(id)
       .populate('createdBy', 'name email')
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
       .lean<any>()
 
     if (!servantee) {
-      return NextResponse.json({ message: 'Servantee not found' }, { status: 404 })
+      return NextResponse.json({ message: 'المخدوم مش موجود' }, { status: 404 })
     }
 
     servantee.retreats = await Retreat.find({ attendees: id })
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
     return NextResponse.json({ servantee })
   } catch (error) {
     console.error('[GET /servantees/:id]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }
 
@@ -47,10 +47,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!authUser) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
 
     const { id } = await params
-    if (!isValidObjectId(id)) return NextResponse.json({ message: 'Invalid servantee id' }, { status: 400 })
+    if (!isValidObjectId(id)) return NextResponse.json({ message: 'معرّف المخدوم غلط' }, { status: 400 })
 
     // Whitelisted fields only — a client can no longer overwrite createdBy, _id, etc.
     const parsed = parseServanteeInput(await readJson(req), { partial: true })
@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     if (parsed.data.phone) {
       const existing = await Servantee.exists({ phone: parsed.data.phone, _id: { $ne: id } })
       if (existing) {
-        return NextResponse.json({ message: 'A servantee with this phone number already exists' }, { status: 409 })
+        return NextResponse.json({ message: 'فيه مخدوم متسجل بنفس رقم التليفون ده' }, { status: 409 })
       }
     }
 
@@ -68,15 +68,15 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       { $set: { ...parsed.data, updatedBy: authUser.sub } },
       { new: true, runValidators: true }
     )
-    if (!servantee) return NextResponse.json({ message: 'Servantee not found' }, { status: 404 })
+    if (!servantee) return NextResponse.json({ message: 'المخدوم مش موجود' }, { status: 404 })
 
     return NextResponse.json({ servantee })
   } catch (error: any) {
     if (error?.code === 11000) {
-      return NextResponse.json({ message: 'A servantee with this phone number already exists' }, { status: 409 })
+      return NextResponse.json({ message: 'فيه مخدوم متسجل بنفس رقم التليفون ده' }, { status: 409 })
     }
     console.error('[PATCH /servantees/:id]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }
 
@@ -86,16 +86,16 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
     await connectDB()
 
     const authUser = await getAuthUser(req)
-    if (!authUser) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!authUser) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
     if (authUser.role !== UserRole.ADMIN) {
-      return NextResponse.json({ message: 'Only admins can delete servantees' }, { status: 403 })
+      return NextResponse.json({ message: 'المسؤولين بس اللي يقدروا يمسحوا مخدومين' }, { status: 403 })
     }
 
     const { id } = await params
-    if (!isValidObjectId(id)) return NextResponse.json({ message: 'Invalid servantee id' }, { status: 400 })
+    if (!isValidObjectId(id)) return NextResponse.json({ message: 'معرّف المخدوم غلط' }, { status: 400 })
 
     const servantee = await Servantee.findByIdAndDelete(id)
-    if (!servantee) return NextResponse.json({ message: 'Servantee not found' }, { status: 404 })
+    if (!servantee) return NextResponse.json({ message: 'المخدوم مش موجود' }, { status: 404 })
 
     // Remove everything that points at the deleted servantee
     const [assignments] = await Promise.all([
@@ -105,11 +105,11 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
     ])
 
     return NextResponse.json({
-      message: 'Servantee deleted successfully',
+      message: 'المخدوم اتمسح',
       removedOutreachAssignments: assignments.deletedCount,
     })
   } catch (error) {
     console.error('[DELETE /servantees/:id]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }

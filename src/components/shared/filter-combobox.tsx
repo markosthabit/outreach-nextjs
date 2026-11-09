@@ -36,7 +36,7 @@ interface FilterComboboxProps {
 export function FilterCombobox({
   label,
   placeholder,
-  searchPlaceholder = 'ابحث...',
+  searchPlaceholder = 'دوّر...',
   options,
   value,
   onChange,
@@ -108,7 +108,7 @@ export function FilterCombobox({
           type="button"
           onClick={() => setQuery('')}
           className="absolute left-1.5 top-1/2 -translate-y-1/2 p-2 md:p-1 text-muted-foreground hover:text-foreground cursor-pointer"
-          aria-label="مسح البحث"
+          aria-label="امسح البحث"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -128,13 +128,13 @@ export function FilterCombobox({
             : 'hover:bg-muted active:bg-muted text-muted-foreground hover:text-foreground'
         )}
       >
-        <span>الكل (عرض جميع الخيارات)</span>
+        <span>الكل (اعرض كل الاختيارات)</span>
         {value === null && <Check className="h-4 w-4 md:h-3.5 md:w-3.5 text-primary" />}
       </button>
 
       {filteredOptions.length === 0 ? (
         <div className="py-8 md:py-6 text-center text-muted-foreground">
-          لا توجد نتائج مطابقة لـ &quot;{query}&quot;
+          مفيش نتايج لـ &quot;{query}&quot;
         </div>
       ) : (
         filteredOptions.map((opt) => {
@@ -161,7 +161,7 @@ export function FilterCombobox({
                 </div>
                 {hasMultipleVariants && (
                   <span className="text-[11px] md:text-[10px] text-muted-foreground/75 whitespace-normal break-words leading-tight text-start pr-5">
-                    يشمل {opt.rawValues.length} صيغ مختلفة
+                    فيه {opt.rawValues.length} طرق كتابة مختلفة
                   </span>
                 )}
               </div>
@@ -214,7 +214,7 @@ export function FilterCombobox({
               <span
                 role="button"
                 tabIndex={0}
-                aria-label={`إلغاء تصفية ${label}`}
+                aria-label={`شيل فلتر ${label}`}
                 onClick={(e) => {
                   e.stopPropagation()
                   onChange(null)
@@ -249,7 +249,7 @@ export function FilterCombobox({
                 {label}
               </DrawerTitle>
               <DrawerDescription className="text-xs">
-                {options.length} قيمة مجمّعة · تم دمج الأسماء المتشابهة تلقائياً
+                {options.length} اختيار · الأسامي اللي شبه بعض اتجمعت لوحدها
               </DrawerDescription>
             </DrawerHeader>
 
@@ -273,7 +273,7 @@ export function FilterCombobox({
                   {icon}
                   {label}
                 </span>
-                <span className="text-[11px] text-muted-foreground">({options.length} قيمة مجمّعة)</span>
+                <span className="text-[11px] text-muted-foreground">({options.length} اختيار)</span>
               </div>
               {searchField}
             </div>
@@ -281,7 +281,7 @@ export function FilterCombobox({
             <div className="max-h-60 overflow-y-auto p-1.5">{optionsList}</div>
 
             <div className="p-2 border-t border-border/80 text-[10px] text-muted-foreground bg-muted/20 text-center rounded-b-xl">
-              تم دمج وتوحيد الأسماء المتشابهة تلقائياً
+              الأسامي اللي شبه بعض اتجمعت لوحدها
             </div>
           </div>
         )

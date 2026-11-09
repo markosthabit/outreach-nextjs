@@ -14,8 +14,8 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
 const loginSchema = z.object({
-  email: z.string().email("يرجى إدخال إيميل صحيح"),
-  password: z.string().min(4, "كلمة السر قصيرة جدًا"),
+  email: z.string().email("اكتب إيميل صح"),
+  password: z.string().min(4, "كلمة السر قصيرة أوي"),
 });
 
 type LoginData = z.infer<typeof loginSchema>;
@@ -48,10 +48,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     try {
       await login(data.email, data.password);
       // login() in AuthContext sets user state AND calls router.push('/dashboard')
-      toast.success("تم تسجيل الدخول بنجاح!");
+      toast.success("أهلاً بيك!");
     } catch (error: any) {
       console.error(error);
-      toast.error("فشل تسجيل الدخول. تأكد من البيانات.");
+      // Show the server's reason (wrong password, too many attempts, …) when there is one
+      toast.error(error?.message || "معرفناش ندخّلك، اتأكد من البيانات.");
     }
   };
 
@@ -70,7 +71,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
           >
             <div className="flex flex-col items-center gap-2 text-center mb-6">
               <h1 className="text-2xl font-bold">سلام ونعمة</h1>
-              <p className="text-muted-foreground text-balance">سجل الدخول لحسابك</p>
+              <p className="text-muted-foreground text-balance">ادخل على حسابك</p>
             </div>
 
             <FieldGroup>
@@ -103,7 +104,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                   disabled={!isMounted || isSubmitting}
                   className="w-full"
                 >
-                  {isSubmitting ? "جارٍ الدخول..." : "تسجيل الدخول"}
+                  {isSubmitting ? "بندخّلك..." : "ادخل"}
                 </Button>
               </Field>
             </FieldGroup>

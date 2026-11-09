@@ -74,7 +74,7 @@ export function EntityDialog({
 
       await apiFetch(url, { method, body: JSON.stringify(formattedData) })
 
-      toast.success(mode === 'create' ? 'تمت الإضافة بنجاح' : 'تم التعديل بنجاح')
+      toast.success(mode === 'create' ? 'اتضاف' : 'اتعدّل')
       setOpen(false)
       onSuccess?.()
     } catch (err: any) {
@@ -88,7 +88,7 @@ export function EntityDialog({
       <DialogTrigger asChild>
         {trigger ?? (
           <Button variant={mode === 'edit' ? 'outline' : 'default'}>
-            {mode === 'edit' ? 'تعديل' : 'إضافة'}
+            {mode === 'edit' ? 'عدّل' : 'ضيف'}
           </Button>
         )}
       </DialogTrigger>
@@ -112,7 +112,7 @@ export function EntityDialog({
                   defaultValue={initialData?.[field.name] ?? ''}
                 >
                   <SelectTrigger id={field.name}>
-                    <SelectValue placeholder="اختر..." />
+                    <SelectValue placeholder="اختار..." />
                   </SelectTrigger>
                   <SelectContent>
                     {field.options.map((opt) => (
@@ -145,9 +145,9 @@ export function EntityDialog({
 
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" type="button" onClick={() => setOpen(false)}>
-              إلغاء
+              رجوع
             </Button>
-            <Button type="submit">{mode === 'create' ? 'إضافة' : 'حفظ التعديلات'}</Button>
+            <Button type="submit">{mode === 'create' ? 'ضيف' : 'احفظ التعديلات'}</Button>
           </div>
         </form>
       </DialogContent>

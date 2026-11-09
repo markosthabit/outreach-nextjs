@@ -1,5 +1,7 @@
 import { optionalString } from './api-utils'
 
+const FIELD_LABELS = { church: 'الكنيسة', diocese: 'الإيبارشية', education: 'الكلية', year: 'الفرقة' } as const
+
 export type ServanteeInput = {
   name?: string
   phone?: string
@@ -37,12 +39,12 @@ export function parseServanteeInput(
   body: any,
   { partial }: { partial: boolean }
 ): { data: ServanteeInput; error?: undefined } | { error: string; data?: undefined } {
-  if (!body || typeof body !== 'object') return { error: 'Invalid request body' }
+  if (!body || typeof body !== 'object') return { error: 'البيانات اللي اتبعتت غلط' }
   const data: ServanteeInput = {}
 
   if (body.name !== undefined || !partial) {
     const name = typeof body.name === 'string' ? body.name.trim() : ''
-    if (!name || name.length > 150) return { error: 'الإسم مطلوب' }
+    if (!name || name.length > 150) return { error: 'اكتب الاسم' }
     data.name = name
   }
 
@@ -51,23 +53,23 @@ export function parseServanteeInput(
     const phone =
       typeof body.phone === 'number' ? String(body.phone) : typeof body.phone === 'string' ? body.phone.trim() : ''
     // "/" is allowed: some records hold two numbers, e.g. "01200062480 / 01029033026"
-    if (!phone || phone.length > 60 || !/^[\d\s+()/-]+$/.test(phone)) return { error: 'رقم التليفون غير صالح' }
+    if (!phone || phone.length > 60 || !/^[\d\s+()/-]+$/.test(phone)) return { error: 'رقم التليفون غلط' }
     data.phone = phone
   }
 
   for (const key of ['church', 'diocese', 'education', 'year'] as const) {
     const raw = typeof body[key] === 'number' ? String(body[key]) : body[key]
     const v = optionalString(raw, 200)
-    if (v === false) return { error: `قيمة غير صالحة في الحقل ${key}` }
+    if (v === false) return { error: `قيمة ${FIELD_LABELS[key]} غلط` }
     if (v !== undefined) data[key] = v
   }
 
   const birthDate = parseBirthDate(body.birthDate)
-  if (birthDate === false) return { error: 'تاريخ الميلاد غير صالح' }
+  if (birthDate === false) return { error: 'تاريخ الميلاد غلط' }
   if (birthDate !== undefined) data.birthDate = birthDate
 
   if (body.isActive !== undefined) {
-    if (typeof body.isActive !== 'boolean') return { error: 'Invalid isActive' }
+    if (typeof body.isActive !== 'boolean') return { error: 'قيمة الحالة غلط' }
     data.isActive = body.isActive
   }
 

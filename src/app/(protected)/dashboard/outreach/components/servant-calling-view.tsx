@@ -95,12 +95,12 @@ export function ServantCallingView({
       )
       onAssignmentChange(res.assignment)
       if (nextCalledState) {
-        toast.success(`تم تسجيل الاتصال بـ ${assignment.servanteeId?.name || 'المخدوم'}`)
+        toast.success(`اتسجل إنك كلمت ${assignment.servanteeId?.name || 'المخدوم'}`)
       } else {
-        toast.info('تم إلغاء علامة الاتصال')
+        toast.info('شيلنا علامة الاتصال')
       }
     } catch (err: any) {
-      toast.error(err?.message || 'فشل تحديث حالة الاتصال')
+      toast.error(err?.message || 'معرفناش نحدّث حالة الاتصال')
     } finally {
       setTogglingId(null)
     }
@@ -122,10 +122,10 @@ export function ServantCallingView({
         { method: 'PATCH', body: JSON.stringify({ notes: noteText }) }
       )
       onAssignmentChange(res.assignment)
-      toast.success('تم حفظ الملاحظة')
+      toast.success('الملاحظة اتحفظت')
       setNoteDialogOpen(false)
     } catch (err: any) {
-      toast.error(err?.message || 'فشل حفظ الملاحظة')
+      toast.error(err?.message || 'معرفناش نحفظ الملاحظة')
     } finally {
       setSavingNote(false)
     }
@@ -133,8 +133,8 @@ export function ServantCallingView({
 
   const filterButtons = [
     { key: 'all' as const, label: 'الكل', count: total, active: '' },
-    { key: 'notCalled' as const, label: 'لم يتم', count: notCalledCount, active: 'bg-rose-600 hover:bg-rose-700 text-white' },
-    { key: 'called' as const, label: 'تم الاتصال', count: calledCount, active: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+    { key: 'notCalled' as const, label: 'لسه', count: notCalledCount, active: 'bg-rose-600 hover:bg-rose-700 text-white' },
+    { key: 'called' as const, label: 'اتكلموا', count: calledCount, active: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
   ]
 
   return (
@@ -167,8 +167,8 @@ export function ServantCallingView({
             {/* Progress summary stats */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3 md:flex md:items-center">
               {[
-                { value: calledCount, label: 'تم الاتصال', cls: 'text-emerald-600 dark:text-emerald-400' },
-                { value: notCalledCount, label: 'متبقي', cls: 'text-rose-600 dark:text-rose-400' },
+                { value: calledCount, label: 'اتكلموا', cls: 'text-emerald-600 dark:text-emerald-400' },
+                { value: notCalledCount, label: 'فاضلين', cls: 'text-rose-600 dark:text-rose-400' },
                 { value: `${completionRate}%`, label: 'الإنجاز', cls: 'text-primary' },
               ].map((stat) => (
                 <div key={stat.label} className="text-center p-2.5 sm:p-3 bg-card rounded-xl border shadow-xs md:min-w-[84px]">
@@ -194,11 +194,11 @@ export function ServantCallingView({
               />
             </div>
             <div className="flex justify-between gap-2 text-xs text-muted-foreground">
-              <span>{calledCount} من أصل {total} مخدوم</span>
+              <span>{calledCount} من {total} مخدوم</span>
               <span className="text-left">
                 {total > 0 && completionRate === 100
-                  ? 'تم إنجاز كافة الافتقادات! مبارك يا خادم الرب'
-                  : `${notCalledCount} مخدوم متبقي`}
+                  ? 'خلصت كل الافتقاد! ربنا يباركك يا خادم'
+                  : `فاضل ${notCalledCount} مخدوم`}
               </span>
             </div>
           </div>
@@ -211,7 +211,7 @@ export function ServantCallingView({
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             type="search"
-            placeholder="بحث بالاسم أو الهاتف أو الكنيسة..."
+            placeholder="دوّر بالاسم أو التليفون أو الكنيسة..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pr-9 bg-background"
@@ -246,14 +246,14 @@ export function ServantCallingView({
           <CardContent className="space-y-2">
             <HeartHandshake className="h-10 w-10 mx-auto text-muted-foreground/40" />
             <p className="font-semibold text-foreground">
-              {total === 0 ? 'لا يوجد مخدومين مكلف بهم' : 'لا توجد نتائج في هذا العرض'}
+              {total === 0 ? 'مفيش مخدومين متوزعين عليك' : 'مفيش نتايج هنا'}
             </p>
             <p className="text-xs">
               {!activeCycle
-                ? 'لا توجد دورة افتقاد نشطة حالياً.'
+                ? 'مفيش دورة افتقاد شغالة دلوقتي.'
                 : total === 0
-                ? 'لم يتم إسناد مخدومين لك في هذه الجولة بعد. تواصل مع المسؤول.'
-                : 'جرب تغيير البحث أو الفلتر أعلاه.'}
+                ? 'لسه متوزعش عليك مخدومين في الجولة دي. كلّم المسؤول.'
+                : 'جرّب تغيّر البحث أو الفلتر اللي فوق.'}
             </p>
           </CardContent>
         </Card>
@@ -285,12 +285,12 @@ export function ServantCallingView({
                     {isCalled ? (
                       <Badge className="bg-emerald-600 text-white gap-1 shrink-0 text-xs py-0.5">
                         <CheckCircle2 className="h-3 w-3" />
-                        تم الاتصال
+                        اتكلم
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-rose-600 border-rose-400/40 bg-rose-50 dark:bg-rose-950/30 gap-1 shrink-0 text-xs py-0.5">
                         <Clock className="h-3 w-3" />
-                        لم يتم
+                        لسه
                       </Badge>
                     )}
                   </div>
@@ -317,7 +317,7 @@ export function ServantCallingView({
                     {isCalled && assignment.calledAt && (
                       <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-medium pt-1">
                         <Calendar className="h-3.5 w-3.5 shrink-0" />
-                        <span>تم الاتصال: {formatDateTime(assignment.calledAt)}</span>
+                        <span>اتكلم: {formatDateTime(assignment.calledAt)}</span>
                       </div>
                     )}
                   </div>
@@ -340,7 +340,7 @@ export function ServantCallingView({
                       <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs font-semibold h-10 sm:h-9" asChild>
                         <a href={tel}>
                           <Phone className="h-4 w-4 text-primary" />
-                          <span>اتصال</span>
+                          <span>كلّمه</span>
                         </a>
                       </Button>
                     )}
@@ -351,7 +351,7 @@ export function ServantCallingView({
                         className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                         asChild
                       >
-                        <a href={wa} target="_blank" rel="noopener noreferrer" aria-label="مراسلة عبر واتساب" title="مراسلة عبر واتساب">
+                        <a href={wa} target="_blank" rel="noopener noreferrer" aria-label="ابعتله واتساب" title="ابعتله واتساب">
                           <IconBrandWhatsapp className="h-4 w-4" />
                         </a>
                       </Button>
@@ -364,8 +364,8 @@ export function ServantCallingView({
                         assignment.notes ? 'text-primary border-primary/30' : 'text-muted-foreground'
                       )}
                       onClick={() => openNoteDialog(assignment)}
-                      aria-label={assignment.notes ? 'تعديل الملاحظة' : 'إضافة ملاحظة'}
-                      title={assignment.notes ? 'تعديل الملاحظة' : 'إضافة ملاحظة'}
+                      aria-label={assignment.notes ? 'عدّل الملاحظة' : 'ضيف ملاحظة'}
+                      title={assignment.notes ? 'عدّل الملاحظة' : 'ضيف ملاحظة'}
                     >
                       <MessageSquare className="h-4 w-4" />
                     </Button>
@@ -389,7 +389,7 @@ export function ServantCallingView({
                     ) : (
                       <CheckCircle2 className="h-4 w-4" />
                     )}
-                    {isCalled ? 'إلغاء علامة الاتصال' : 'تم الاتصال'}
+                    {isCalled ? 'شيل علامة الاتصال' : 'كلمته'}
                   </Button>
                 </CardContent>
               </Card>
@@ -405,15 +405,15 @@ export function ServantCallingView({
             <DialogHeader className="space-y-1.5">
               <DialogTitle className="text-lg">ملاحظة الافتقاد</DialogTitle>
               <DialogDescription className="text-sm">
-                ملاحظة حول مكالمة: {currentAssignment?.servanteeId?.name}
+                ملاحظة على مكالمة: {currentAssignment?.servanteeId?.name}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-2">
-              <Label htmlFor="callNote" className="block">الملاحظة أو طلب الصلاة</Label>
+              <Label htmlFor="callNote" className="block">الملاحظة أو طلبة الصلاة</Label>
               <Textarea
                 id="callNote"
-                placeholder="مثال: يطلب الصلاة لأجل امتحاناته، وسيحضر الخلوة القادمة..."
+                placeholder="مثلاً: عايز نصليله عشان امتحاناته، وهيحضر الخلوة الجاية..."
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 rows={4}
@@ -427,10 +427,10 @@ export function ServantCallingView({
 
             <DialogFooter className="gap-2 sm:gap-2">
               <Button type="button" variant="outline" onClick={() => setNoteDialogOpen(false)} disabled={savingNote}>
-                إلغاء
+                رجوع
               </Button>
               <Button type="submit" disabled={savingNote || noteText.trim() === (currentAssignment?.notes || '')}>
-                {savingNote ? 'جاري الحفظ...' : 'حفظ الملاحظة'}
+                {savingNote ? 'بنحفظ...' : 'احفظ الملاحظة'}
               </Button>
             </DialogFooter>
           </form>

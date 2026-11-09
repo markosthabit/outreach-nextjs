@@ -27,8 +27,8 @@ export const FuzzyAutocompleteInput = forwardRef<HTMLInputElement, FuzzyAutocomp
       options,
       normalizer,
       icon,
-      labelTitle = 'الخيارات المقترحة',
-      placeholder = 'اكتب أو اختر...',
+      labelTitle = 'اقتراحات',
+      placeholder = 'اكتب أو اختار...',
       className,
       ...props
     },
@@ -117,7 +117,7 @@ export const FuzzyAutocompleteInput = forwardRef<HTMLInputElement, FuzzyAutocomp
               }}
               className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
               tabIndex={-1}
-              aria-label="مسح النص"
+              aria-label="امسح الكلام"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -134,7 +134,7 @@ export const FuzzyAutocompleteInput = forwardRef<HTMLInputElement, FuzzyAutocomp
             <div className="px-3 py-1.5 bg-muted/40 border-b border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1 font-medium">
                 <Sparkles className="h-3 w-3 text-primary" />
-                {value.trim() ? 'أقرب النتائج المقترحة' : labelTitle}
+                {value.trim() ? 'أقرب اقتراحات' : labelTitle}
               </span>
               <span>{suggestions.length} اقتراح</span>
             </div>
@@ -179,7 +179,7 @@ export const FuzzyAutocompleteInput = forwardRef<HTMLInputElement, FuzzyAutocomp
 
                       {option.rawValues.length > 1 && (
                         <span className="text-[10px] text-muted-foreground/75 whitespace-normal break-words leading-tight pr-5 text-start">
-                          يشمل: {option.rawValues.slice(0, 3).join('، ')}
+                          فيه: {option.rawValues.slice(0, 3).join('، ')}
                           {option.rawValues.length > 3 ? '...' : ''}
                         </span>
                       )}
@@ -210,7 +210,7 @@ export const FuzzyAutocompleteInput = forwardRef<HTMLInputElement, FuzzyAutocomp
 
             {/* Footer helper */}
             <div className="px-3 py-1.5 bg-muted/20 border-t border-border/50 text-[10px] text-muted-foreground text-center">
-              اختر من القائمة، أو تابع الكتابة لإدخال اسم جديد
+              اختار من القايمة، أو كمّل كتابة لو اسم جديد
             </div>
           </div>
         )}

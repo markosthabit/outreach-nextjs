@@ -29,18 +29,18 @@ function idList(value: unknown): string[] | null | false {
 export async function GET(req: NextRequest, { params }: Ctx) {
   try {
     await connectDB()
-    if (!(await getAuthUser(req))) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!(await getAuthUser(req))) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
 
     const { id } = await params
-    if (!isValidObjectId(id)) return NextResponse.json({ message: 'Invalid retreat id' }, { status: 400 })
+    if (!isValidObjectId(id)) return NextResponse.json({ message: 'معرّف الخلوة غلط' }, { status: 400 })
 
     const retreat = await populated(Retreat.findById(id))
-    if (!retreat) return NextResponse.json({ message: 'Retreat not found' }, { status: 404 })
+    if (!retreat) return NextResponse.json({ message: 'الخلوة مش موجودة' }, { status: 404 })
 
     return NextResponse.json({ retreat })
   } catch (error) {
     console.error('[GET /retreats/:id]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }
 
@@ -54,10 +54,10 @@ export async function GET(req: NextRequest, { params }: Ctx) {
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   try {
     await connectDB()
-    if (!(await getAuthUser(req))) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!(await getAuthUser(req))) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
 
     const { id } = await params
-    if (!isValidObjectId(id)) return NextResponse.json({ message: 'Invalid retreat id' }, { status: 400 })
+    if (!isValidObjectId(id)) return NextResponse.json({ message: 'معرّف الخلوة غلط' }, { status: 400 })
 
     const body = await readJson(req)
     const parsed = parseRetreatInput(body, { partial: true })
@@ -70,24 +70,24 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       removeServants: idList(body.removeServants),
     }
     if (Object.values(ops).some((v) => v === false)) {
-      return NextResponse.json({ message: 'Invalid id list' }, { status: 400 })
+      return NextResponse.json({ message: 'فيه معرّفات غلط في القايمة' }, { status: 400 })
     }
 
     const existing = await Retreat.findById(id).select('startDate endDate').lean<any>()
-    if (!existing) return NextResponse.json({ message: 'Retreat not found' }, { status: 404 })
+    if (!existing) return NextResponse.json({ message: 'الخلوة مش موجودة' }, { status: 404 })
 
     const startDate = parsed.data.startDate ?? existing.startDate
     const endDate = parsed.data.endDate ?? existing.endDate
     if (new Date(startDate) > new Date(endDate)) {
-      return NextResponse.json({ message: 'startDate cannot be after endDate' }, { status: 400 })
+      return NextResponse.json({ message: 'تاريخ البداية لازم يبقى قبل تاريخ النهاية' }, { status: 400 })
     }
 
     // Only link documents that actually exist
     if (ops.addAttendees && (await Servantee.countDocuments({ _id: { $in: ops.addAttendees } })) !== ops.addAttendees.length) {
-      return NextResponse.json({ message: 'One or more servantees were not found' }, { status: 404 })
+      return NextResponse.json({ message: 'فيه مخدومين مش موجودين' }, { status: 404 })
     }
     if (ops.addServants && (await User.countDocuments({ _id: { $in: ops.addServants } })) !== ops.addServants.length) {
-      return NextResponse.json({ message: 'One or more servants were not found' }, { status: 404 })
+      return NextResponse.json({ message: 'فيه خدام مش موجودين' }, { status: 404 })
     }
 
     // $addToSet and $pull can't target the same path in one update, so apply adds then removes
@@ -110,7 +110,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     return NextResponse.json({ retreat })
   } catch (error) {
     console.error('[PATCH /retreats/:id]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }
 
@@ -118,20 +118,20 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 export async function DELETE(req: NextRequest, { params }: Ctx) {
   try {
     await connectDB()
-    if (!(await getAuthUser(req))) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!(await getAuthUser(req))) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
 
     const { id } = await params
-    if (!isValidObjectId(id)) return NextResponse.json({ message: 'Invalid retreat id' }, { status: 400 })
+    if (!isValidObjectId(id)) return NextResponse.json({ message: 'معرّف الخلوة غلط' }, { status: 400 })
 
     const retreat = await Retreat.findByIdAndDelete(id)
-    if (!retreat) return NextResponse.json({ message: 'Retreat not found' }, { status: 404 })
+    if (!retreat) return NextResponse.json({ message: 'الخلوة مش موجودة' }, { status: 404 })
 
     // Notes attached to the retreat would otherwise be orphaned
     await Note.deleteMany({ retreatId: retreat._id })
 
-    return NextResponse.json({ message: 'Retreat deleted successfully' })
+    return NextResponse.json({ message: 'الخلوة اتمسحت' })
   } catch (error) {
     console.error('[DELETE /retreats/:id]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }

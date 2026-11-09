@@ -11,14 +11,14 @@ export async function GET(req: NextRequest) {
     await connectDB()
     const authUser = await getAuthUser(req)
     if (!authUser || authUser.role !== 'Admin') {
-      return NextResponse.json({ message: 'غير مصرح لك بهذا الإجراء' }, { status: 403 })
+      return NextResponse.json({ message: 'مش مسموحلك تعمل كده' }, { status: 403 })
     }
 
     const activeCycle = await OutreachCycle.findOne({ status: 'active' }).lean()
     if (!activeCycle) {
       return NextResponse.json({
         servantees: [],
-        message: 'No active cycle found. Please start a cycle first.',
+        message: 'مفيش دورة شغالة، ابدأ دورة الأول',
         activeCycle: null,
       })
     }
@@ -47,6 +47,6 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('[GET /api/outreach/eligible-servantees]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }

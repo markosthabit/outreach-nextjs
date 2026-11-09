@@ -64,7 +64,7 @@ export default function ServanteeDetailsDialog({
 
         {loading ? (
           <p className="py-6 text-center text-muted-foreground animate-pulse">
-            جاري التحميل...
+            بنحمّل...
           </p>
         ) : (
           <div className="space-y-5 mt-2">
@@ -88,7 +88,7 @@ export default function ServanteeDetailsDialog({
             {/* Retreat list */}
             {retreats.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">
-                لم يتم الاشتراك في خلوات بعد
+                لسه محضرش ولا خلوة
               </p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">

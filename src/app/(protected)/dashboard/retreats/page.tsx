@@ -51,7 +51,7 @@ const retreatFields = [
   { name: 'startDate', label: 'تاريخ البداية', type: 'date', required: true },
   { name: 'endDate', label: 'تاريخ النهاية', type: 'date', required: true },
   { name: 'hours', label: 'عدد الساعات', type: 'number' },
-  { name: 'contents', label: 'محتويات وكلمات الخلوة', type: 'textarea' },
+  { name: 'contents', label: 'محتوى وكلمات الخلوة', type: 'textarea' },
   { name: 'exercises', label: 'تداريب الخلوة', type: 'textarea' },
 ]
 
@@ -86,7 +86,7 @@ function AttendeePicker({
         .filter(Boolean)
         .map((a: any) => (typeof a === 'string' ? a : a._id))
       if (existing.includes(servanteeId)) {
-        toast.error('المخدوم مضاف بالفعل')
+        toast.error('المخدوم متضاف أصلاً')
         return
       }
       // Atomic add on the server — no read-modify-write race with other editors
@@ -94,12 +94,12 @@ function AttendeePicker({
         method: 'PATCH',
         body: JSON.stringify({ addAttendees: [servanteeId] }),
       })
-      toast.success('تمت إضافة المخدوم إلى الخلوة بنجاح')
+      toast.success('المخدوم اتضاف للخلوة')
       onAdded()
       setQuery('')
       setResults([])
     } catch {
-      toast.error('حدث خطأ أثناء الإضافة')
+      toast.error('حصلت مشكلة وإحنا بنضيف')
     } finally {
       setLoading(false)
     }
@@ -109,14 +109,14 @@ function AttendeePicker({
     <Card className="p-4 space-y-3">
       <div className="flex flex-col sm:flex-row items-center gap-2">
         <Input
-          placeholder="ابحث عن مخدوم..."
+          placeholder="دوّر على مخدوم..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="flex-1"
         />
         <AddServanteeDialog
           existingServantees={allServantees}
-          selectExistingLabel="إضافة للخلوة"
+          selectExistingLabel="ضيفه للخلوة"
           onAdded={async (newServantee) => {
             await refreshServantees()
             if (newServantee?._id) {
@@ -140,7 +140,7 @@ function AttendeePicker({
                 <p className="text-xs text-muted-foreground">{r.phone || '-'}</p>
               </div>
               <Button size="sm" onClick={() => addAttendee(r._id)} disabled={loading}>
-                إضافة
+                ضيف
               </Button>
             </div>
           ))}
@@ -148,7 +148,7 @@ function AttendeePicker({
       )}
 
       {query.trim() && results.length === 0 && (
-        <p className="text-sm text-muted-foreground">لا توجد نتائج</p>
+        <p className="text-sm text-muted-foreground">مفيش نتايج</p>
       )}
     </Card>
   )
@@ -191,18 +191,18 @@ function ServantPicker({
         .filter(Boolean)
         .map((s: any) => (typeof s === 'string' ? s : s._id))
       if (existing.includes(servantId)) {
-        toast.error('الخادم مضاف بالفعل للخلوة')
+        toast.error('الخادم متضاف للخلوة أصلاً')
         return
       }
       await apiFetch(`/api/retreats/${retreatId}`, {
         method: 'PATCH',
         body: JSON.stringify({ addServants: [servantId] }),
       })
-      toast.success('تمت إضافة الخادم إلى الخلوة بنجاح')
+      toast.success('الخادم اتضاف للخلوة')
       onAdded()
       setQuery('')
     } catch {
-      toast.error('حدث خطأ أثناء إضافة الخادم')
+      toast.error('حصلت مشكلة وإحنا بنضيف الخادم')
     } finally {
       setLoading(false)
     }
@@ -211,7 +211,7 @@ function ServantPicker({
   return (
     <Card className="p-4 space-y-3">
       <Input
-        placeholder="ابحث عن خادم مسجل بالاسم أو البريد..."
+        placeholder="دوّر على خادم بالاسم أو الإيميل..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
@@ -235,18 +235,18 @@ function ServantPicker({
                 </div>
               </div>
               <Button size="sm" onClick={() => addServant(s._id)} disabled={loading} className="gap-1 h-7 text-xs shrink-0">
-                <Plus className="h-3.5 w-3.5" /> إضافة
+                <Plus className="h-3.5 w-3.5" /> ضيف
               </Button>
             </div>
           ))}
         </div>
       ) : availableServants.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-4">
-          تمت إضافة جميع الخدام المسجلين إلى هذه الخلوة 🎉
+          كل الخدام المتسجلين اتضافوا للخلوة دي 🎉
         </p>
       ) : (
         <p className="text-xs text-muted-foreground text-center py-4">
-          لا يوجد نتائج تطابق البحث
+          مفيش نتايج للبحث ده
         </p>
       )}
     </Card>
@@ -271,7 +271,7 @@ function FocusedRetreatCard({
   const servants = useMemo(() => {
     return ((retreat.servants || []) as any[]).filter(Boolean).map((s) => {
       const id = typeof s === 'string' ? s : s._id
-      const name = typeof s === 'string' ? 'خادم' : s.name || 'غير معروف'
+      const name = typeof s === 'string' ? 'خادم' : s.name || 'مش معروف'
       const email = typeof s === 'string' ? '' : s.email || ''
       const role = typeof s === 'string' ? 'خادم' : s.role === 'Admin' ? 'مسؤول' : 'خادم'
       return { _id: id, name, email, role }
@@ -281,7 +281,7 @@ function FocusedRetreatCard({
   const attendees = useMemo(() => {
     return ((retreat.attendees || []) as any[]).filter(Boolean).map((a) => {
       const id = typeof a === 'string' ? a : a._id
-      const name = typeof a === 'string' ? a : a.name || 'غير معروف'
+      const name = typeof a === 'string' ? a : a.name || 'مش معروف'
       const phone = typeof a === 'string' ? '-' : a.phone || '-'
       
       const s = allServantees.find(x => x._id === id)
@@ -334,7 +334,7 @@ function FocusedRetreatCard({
         </div>
         {retreat.contents && (
           <p className="text-sm mt-1 whitespace-pre-wrap">
-            <strong>محتويات وكلمات الخلوة:</strong><br /> {retreat.contents}
+            <strong>محتوى وكلمات الخلوة:</strong><br /> {retreat.contents}
           </p>
         )}
         {retreat.exercises && (
@@ -354,13 +354,13 @@ function FocusedRetreatCard({
       <div className="space-y-2 border-t pt-3">
         <div className="flex items-center gap-2 mb-1">
           <UserCog className="h-4 w-4 text-primary" />
-          <h3 className="font-medium text-sm">الخدام المشرفون</h3>
+          <h3 className="font-medium text-sm">الخدام المسؤولين</h3>
           <Badge variant="secondary" className="text-xs">{servants.length}</Badge>
         </div>
 
         {servants.length === 0 ? (
           <p className="text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg border border-dashed text-center">
-            لم يتم تسجيل خدام لهذه الخلوة بعد — يمكنك إضافتهم من تبويب &quot;الخدام&quot;
+            لسه مفيش خدام متسجلين للخلوة دي، تقدر تضيفهم من تبويب &quot;الخدام&quot;
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -385,8 +385,8 @@ function FocusedRetreatCard({
                 </div>
                 <ConfirmDeleteDialog
                   onConfirm={() => onRemoveServant(s._id)}
-                  title="حذف خادم من الخلوة"
-                  description={`هل أنت متأكد من حذف الخادم "${s.name}" من هذه الخلوة؟`}
+                  title="تشيل الخادم من الخلوة؟"
+                  description={`متأكد إنك عايز تشيل "${s.name}" من الخلوة دي؟`}
                 />
               </div>
             ))}
@@ -410,14 +410,14 @@ function FocusedRetreatCard({
                 <TableRow>
                   <TableHead className="text-right">الإسم</TableHead>
                   <TableHead className="text-right">التليفون</TableHead>
-                  <TableHead className="text-right w-[120px]">الإجراءات</TableHead>
+                  <TableHead className="text-right w-[120px]">خيارات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginated.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
-                      لا يوجد مشاركين
+                      مفيش مشاركين
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -427,7 +427,7 @@ function FocusedRetreatCard({
                         <div className="flex items-center gap-2">
                           {a.name}
                           {a.isFirstTimer && (
-                            <Badge variant="outline" className="text-[10px] h-5 bg-blue-50 text-blue-700 border-blue-200" title="أول مرة يحضر خلوة">
+                            <Badge variant="outline" className="text-[10px] h-5 bg-blue-50 text-blue-700 border-blue-200" title="أول مرة ييجي خلوة">
                               جديد
                             </Badge>
                           )}
@@ -439,8 +439,8 @@ function FocusedRetreatCard({
                           <NotesButton entityId={a.id} entityType="servantee" />
                           <ConfirmDeleteDialog
                             onConfirm={() => onRemoveAttendee(a.id)}
-                            title="حذف مخدوم"
-                            description="هل أنت متأكد أنك ترغب في حذف هذا المخدوم من الخلوة؟"
+                            title="تشيل المخدوم؟"
+                            description="متأكد إنك عايز تشيل المخدوم ده من الخلوة؟"
                           />
                         </div>
                       </TableCell>
@@ -455,7 +455,7 @@ function FocusedRetreatCard({
         {/* Mobile cards */}
         <div className="lg:hidden space-y-2">
           {paginated.length === 0 ? (
-            <p className="text-center text-muted-foreground py-6">لا يوجد مشاركين</p>
+            <p className="text-center text-muted-foreground py-6">مفيش مشاركين</p>
           ) : (
             paginated.map((a) => (
               <Card key={a.id} className="p-3 flex items-center justify-between">
@@ -474,8 +474,8 @@ function FocusedRetreatCard({
                   <NotesButton entityId={a.id} entityType="servantee" />
                   <ConfirmDeleteDialog
                     onConfirm={() => onRemoveAttendee(a.id)}
-                    title="حذف مخدوم"
-                    description="هل أنت متأكد أنك ترغب في حذف هذا المخدوم من الخلوة؟"
+                    title="تشيل المخدوم؟"
+                    description="متأكد إنك عايز تشيل المخدوم ده من الخلوة؟"
                   />
                 </div>
               </Card>
@@ -517,7 +517,7 @@ export default function RetreatsPage() {
       const res = await apiFetch<{ servantees: Servantee[] }>('/api/servantees')
       setAllServantees(res.servantees ?? [])
     } catch (err) {
-      toast.error('حدث خطأ أثناء تحميل المخدومين')
+      toast.error('حصلت مشكلة وإحنا بنحمّل المخدومين')
     }
   }, [])
 
@@ -548,7 +548,7 @@ export default function RetreatsPage() {
       setAllRetreats(sorted)
     } catch (err) {
       console.error(err)
-      toast.error('حدث خطأ أثناء تحميل الخلوات')
+      toast.error('حصلت مشكلة وإحنا بنحمّل الخلوات')
     } finally {
       setLoading(false)
     }
@@ -579,11 +579,11 @@ export default function RetreatsPage() {
         method: 'PATCH',
         body: JSON.stringify({ removeAttendees: [servanteeId] }),
       })
-      toast.success('تم حذف المخدوم من الخلوة')
+      toast.success('المخدوم اتشال من الخلوة')
       await refreshFocused()
       fetchRetreats()
     } catch (err: any) {
-      toast.error(err?.message || 'فشل حذف المخدوم من الخلوة')
+      toast.error(err?.message || 'معرفناش نشيل المخدوم من الخلوة')
     }
   }
 
@@ -594,11 +594,11 @@ export default function RetreatsPage() {
         method: 'PATCH',
         body: JSON.stringify({ removeServants: [servantId] }),
       })
-      toast.success('تم حذف الخادم من الخلوة')
+      toast.success('الخادم اتشال من الخلوة')
       await refreshFocused()
       fetchRetreats()
     } catch (err: any) {
-      toast.error(err?.message || 'فشل حذف الخادم من الخلوة')
+      toast.error(err?.message || 'معرفناش نشيل الخادم من الخلوة')
     }
   }
 
@@ -613,7 +613,7 @@ export default function RetreatsPage() {
           <Badge variant="secondary">{filtered.length}</Badge>
         </div>
         <EntityDialog
-          title="إضافة خلوة جديدة"
+          title="ضيف خلوة جديدة"
           endpoint="api/retreats"
           fields={retreatFields}
           mode="create"
@@ -621,7 +621,7 @@ export default function RetreatsPage() {
         />
       </div>
 
-      <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="ابحث عن خلوة..." />
+      <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="دوّر على خلوة..." />
 
       {/* Desktop Table */}
       <Card className="hidden lg:block p-4 shadow-sm overflow-x-auto">
@@ -635,14 +635,14 @@ export default function RetreatsPage() {
               <TableHead className="text-right">الساعات</TableHead>
               <TableHead className="text-right">المشاركين</TableHead>
               <TableHead className="text-right">الخدام</TableHead>
-              <TableHead className="text-right w-[140px]">الإجراءات</TableHead>
+              <TableHead className="text-right w-[140px]">خيارات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginated.length === 0 && !loading ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                  لا يوجد خلوات
+                  مفيش خلوات
                 </TableCell>
               </TableRow>
             ) : (
@@ -672,7 +672,7 @@ export default function RetreatsPage() {
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
                       <EntityDialog
-                        title="تعديل خلوة"
+                        title="عدّل الخلوة"
                         endpoint={`api/retreats`}
                         fields={retreatFields}
                         mode="edit"
@@ -686,16 +686,16 @@ export default function RetreatsPage() {
                       />
                       <NotesButton entityId={r._id} entityType="retreat" />
                       <ConfirmDeleteDialog
-                        title="حذف الخلوة"
-                        description={`هل أنت متأكد أنك ترغب في حذف الخلوة "${r.name}"؟`}
+                        title="تمسح الخلوة؟"
+                        description={`متأكد إنك عايز تمسح خلوة "${r.name}"؟`}
                         onConfirm={async () => {
                           try {
                             await apiFetch(`/api/retreats/${r._id}`, { method: 'DELETE' })
-                            toast.success('تم حذف الخلوة بنجاح')
+                            toast.success('الخلوة اتمسحت')
                             fetchRetreats()
                             if (selectedRetreat?._id === r._id) setSelectedRetreat(null)
                           } catch {
-                            toast.error('حدث خطأ أثناء حذف الخلوة')
+                            toast.error('حصلت مشكلة وإحنا بنمسح الخلوة')
                           }
                         }}
                       />
@@ -711,7 +711,7 @@ export default function RetreatsPage() {
       {/* Mobile Cards */}
       <div className="lg:hidden space-y-3">
         {paginated.length === 0 && !loading ? (
-          <p className="text-center text-muted-foreground py-12">لا يوجد خلوات</p>
+          <p className="text-center text-muted-foreground py-12">مفيش خلوات</p>
         ) : (
           paginated.map((r) => (
             <Card
@@ -752,7 +752,7 @@ export default function RetreatsPage() {
               </div>
               <div className="flex gap-1 pt-1 border-t" onClick={(e) => e.stopPropagation()}>
                 <EntityDialog
-                  title="تعديل خلوة"
+                  title="عدّل الخلوة"
                   endpoint={`api/retreats`}
                   fields={retreatFields}
                   mode="edit"
@@ -766,16 +766,16 @@ export default function RetreatsPage() {
                 />
                 <NotesButton entityId={r._id} entityType="retreat" />
                 <ConfirmDeleteDialog
-                  title="حذف الخلوة"
-                  description={`هل أنت متأكد أنك ترغب في حذف الخلوة "${r.name}"؟`}
+                  title="تمسح الخلوة؟"
+                  description={`متأكد إنك عايز تمسح خلوة "${r.name}"؟`}
                   onConfirm={async () => {
                     try {
                       await apiFetch(`/api/retreats/${r._id}`, { method: 'DELETE' })
-                      toast.success('تم حذف الخلوة بنجاح')
+                      toast.success('الخلوة اتمسحت')
                       fetchRetreats()
                       if (selectedRetreat?._id === r._id) setSelectedRetreat(null)
                     } catch {
-                      toast.error('حدث خطأ أثناء حذف الخلوة')
+                      toast.error('حصلت مشكلة وإحنا بنمسح الخلوة')
                     }
                   }}
                 />
@@ -790,12 +790,12 @@ export default function RetreatsPage() {
         <div className="flex items-center justify-center gap-4">
           <Button variant="outline" size="sm" disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}>
-            <ChevronRight className="h-4 w-4 ml-1" /> السابق
+            <ChevronRight className="h-4 w-4 ml-1" /> اللي قبل
           </Button>
           <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
           <Button variant="outline" size="sm" disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}>
-            التالي <ChevronLeft className="h-4 w-4 mr-1" />
+            اللي بعد <ChevronLeft className="h-4 w-4 mr-1" />
           </Button>
         </div>
       )}
@@ -814,7 +814,7 @@ export default function RetreatsPage() {
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="attendees" className="gap-1.5 text-xs sm:text-sm">
                   <Users className="h-4 w-4" />
-                  المشاركون ({((selectedRetreat.attendees || []) as any[]).length})
+                  المشاركين ({((selectedRetreat.attendees || []) as any[]).length})
                 </TabsTrigger>
                 <TabsTrigger value="servants" className="gap-1.5 text-xs sm:text-sm">
                   <UserCog className="h-4 w-4" />
@@ -850,7 +850,7 @@ export default function RetreatsPage() {
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => setSelectedRetreat(null)}
                 className="gap-1">
-                <X className="h-4 w-4" /> إلغاء التحديد
+                <X className="h-4 w-4" /> شيل التحديد
               </Button>
               <GenerateAttendeesReport retreat={selectedRetreat} />
               <GenerateMissingServantees

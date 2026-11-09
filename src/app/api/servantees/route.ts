@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!authUser) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
 
     const [servantees, allRetreats] = await Promise.all([
       Servantee.find().populate('createdBy', 'name email').populate('updatedBy', 'name email').lean(),
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ servantees: servanteesWithRetreats })
   } catch (error) {
     console.error('[GET /servantees]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }
 
@@ -49,14 +49,14 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!authUser) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
 
     const parsed = parseServanteeInput(await readJson(req), { partial: false })
     if (parsed.error !== undefined) return NextResponse.json({ message: parsed.error }, { status: 400 })
 
     const existing = await Servantee.exists({ phone: parsed.data.phone })
     if (existing) {
-      return NextResponse.json({ message: 'A servantee with this phone number already exists' }, { status: 409 })
+      return NextResponse.json({ message: 'فيه مخدوم متسجل بنفس رقم التليفون ده' }, { status: 409 })
     }
 
     const servantee = await Servantee.create({
@@ -69,9 +69,9 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     // Unique index race: two requests with the same phone at once
     if (error?.code === 11000) {
-      return NextResponse.json({ message: 'A servantee with this phone number already exists' }, { status: 409 })
+      return NextResponse.json({ message: 'فيه مخدوم متسجل بنفس رقم التليفون ده' }, { status: 409 })
     }
     console.error('[POST /servantees]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }

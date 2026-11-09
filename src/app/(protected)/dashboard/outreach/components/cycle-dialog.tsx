@@ -35,7 +35,7 @@ export function CycleDialog({ open, onOpenChange, activeCycle, mode, onSuccess }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (isStart && !name.trim()) return toast.error('يرجى إدخال اسم الدورة')
+    if (isStart && !name.trim()) return toast.error('اكتب اسم الدورة')
     if (!isStart && !activeCycle?._id) return
 
     try {
@@ -44,11 +44,11 @@ export function CycleDialog({ open, onOpenChange, activeCycle, mode, onSuccess }
         method: isStart ? 'POST' : 'PATCH',
         body: JSON.stringify(isStart ? { name: name.trim() } : { cycleId: activeCycle._id, action: 'end' }),
       })
-      toast.success(isStart ? 'تم بدء دورة افتقاد جديدة بنجاح' : 'تم إنهاء دورة الافتقاد الحالية')
+      toast.success(isStart ? 'الدورة الجديدة بدأت' : 'الدورة الحالية خلصت')
       onOpenChange(false)
       onSuccess()
     } catch (err: any) {
-      toast.error(err?.message || (isStart ? 'فشل بدء الدورة' : 'فشل إنهاء الدورة'))
+      toast.error(err?.message || (isStart ? 'معرفناش نبدأ الدورة' : 'معرفناش ننهي الدورة'))
     } finally {
       setLoading(false)
     }
@@ -70,13 +70,13 @@ export function CycleDialog({ open, onOpenChange, activeCycle, mode, onSuccess }
                 </div>
               )}
               <DialogTitle className="text-lg">
-                {isStart ? 'بدء دورة افتقاد جديدة' : 'إنهاء دورة الافتقاد الحالية'}
+                {isStart ? 'ابدأ دورة افتقاد جديدة' : 'إنهي دورة الافتقاد الحالية'}
               </DialogTitle>
             </div>
             <DialogDescription className="text-sm leading-relaxed">
               {isStart
-                ? 'الدورة الجديدة تعيد كل المخدومين لقائمة المتاحين للتوزيع من جديد.'
-                : `سيتم إغلاق الدورة "${activeCycle?.name}" وكل جولاتها النشطة. ستبقى تقاريرها متاحة للمراجعة، لكن لن يمكن إضافة جولات أو تكليفات جديدة لها.`}
+                ? 'الدورة الجديدة بترجّع كل المخدومين لقايمة المتاحين للتوزيع من الأول.'
+                : `الدورة "${activeCycle?.name}" وكل جولاتها الشغالة هيتقفلوا. تقاريرها هتفضل موجودة تراجعها، بس مش هينفع تضيف عليها جولات أو تكليفات جديدة.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -86,7 +86,7 @@ export function CycleDialog({ open, onOpenChange, activeCycle, mode, onSuccess }
                 <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-lg text-sm flex items-start gap-2.5">
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                   <span className="leading-relaxed">
-                    توجد دورة نشطة حالياً ({activeCycle.name}). بدء دورة جديدة سيغلقها تلقائياً.
+                    فيه دورة شغالة دلوقتي ({activeCycle.name}). لو بدأت دورة جديدة هتتقفل لوحدها.
                   </span>
                 </div>
               )}
@@ -106,10 +106,10 @@ export function CycleDialog({ open, onOpenChange, activeCycle, mode, onSuccess }
 
           <DialogFooter className="gap-2 sm:gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              إلغاء
+              رجوع
             </Button>
             <Button type="submit" variant={isStart ? 'default' : 'destructive'} disabled={loading}>
-              {loading ? 'جاري التنفيذ...' : isStart ? 'بدء الدورة' : 'تأكيد الإنهاء'}
+              {loading ? 'ثانية واحدة...' : isStart ? 'ابدأ الدورة' : 'أيوه، إنهيها'}
             </Button>
           </DialogFooter>
         </form>

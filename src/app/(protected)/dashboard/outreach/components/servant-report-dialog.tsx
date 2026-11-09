@@ -102,8 +102,8 @@ export function ServantReportDialog({
 
   const filterButtons = [
     { key: 'all' as const, label: 'الكل', count: servantData.assignedCount, active: '' },
-    { key: 'notCalled' as const, label: 'لم يتم', count: servantData.notCalledCount, active: 'bg-rose-600 hover:bg-rose-700 text-white' },
-    { key: 'called' as const, label: 'تم الاتصال', count: servantData.calledCount, active: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+    { key: 'notCalled' as const, label: 'لسه', count: servantData.notCalledCount, active: 'bg-rose-600 hover:bg-rose-700 text-white' },
+    { key: 'called' as const, label: 'اتكلموا', count: servantData.calledCount, active: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
   ]
 
   return (
@@ -121,18 +121,18 @@ export function ServantReportDialog({
                   <span className="truncate">{servantData.servant.name}</span>
                 </DialogTitle>
                 <DialogDescription className="mt-1">
-                  {roundName ? `جولة: ${roundName}` : 'تفاصيل التكليفات وحالة الافتقاد'}
+                  {roundName ? `جولة: ${roundName}` : 'التكليفات وحالة الافتقاد'}
                 </DialogDescription>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 px-2.5 py-1 font-semibold gap-1">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  تم: {servantData.calledCount}
+                  اتكلموا: {servantData.calledCount}
                 </Badge>
                 <Badge variant="outline" className="bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 px-2.5 py-1 font-semibold gap-1">
                   <XCircle className="h-3.5 w-3.5" />
-                  متبقي: {servantData.notCalledCount}
+                  فاضلين: {servantData.notCalledCount}
                 </Badge>
                 <Badge className="px-2.5 py-1 text-xs">{servantData.completionPercentage}% إنجاز</Badge>
               </div>
@@ -143,7 +143,7 @@ export function ServantReportDialog({
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   type="search"
-                  placeholder="بحث بالاسم أو الهاتف أو الكنيسة..."
+                  placeholder="دوّر بالاسم أو التليفون أو الكنيسة..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pr-9 h-9 text-sm"
@@ -169,7 +169,7 @@ export function ServantReportDialog({
 
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mx-1 px-1 mt-3">
             {filteredAssignments.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground text-sm">لا توجد نتائج مطابقة</div>
+              <div className="text-center py-12 text-muted-foreground text-sm">مفيش نتايج</div>
             ) : (
               <div className="space-y-2.5 sm:space-y-3 py-1">
                 {filteredAssignments.map((assignment: any) => {
@@ -193,17 +193,17 @@ export function ServantReportDialog({
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-sm sm:text-base text-foreground break-words">
-                              {s?.name || 'مخدوم غير معروف'}
+                              {s?.name || 'مخدوم مش معروف'}
                             </span>
                             {isCalled ? (
                               <Badge className="bg-emerald-600 text-white gap-1 text-[11px]">
                                 <CheckCircle2 className="h-3 w-3" />
-                                تم الاتصال
+                                اتكلم
                               </Badge>
                             ) : (
                               <Badge className="bg-rose-600 text-white gap-1 text-[11px]">
                                 <XCircle className="h-3 w-3" />
-                                لم يتم
+                                لسه
                               </Badge>
                             )}
                           </div>
@@ -232,9 +232,9 @@ export function ServantReportDialog({
                           {isCalled && assignment.calledAt && (
                             <div className="pt-1 flex items-center gap-1.5 text-xs text-emerald-800 dark:text-emerald-300 font-medium flex-wrap">
                               <Calendar className="h-3.5 w-3.5 shrink-0" />
-                              <span>تم الاتصال في: {formatDateTime(assignment.calledAt, true)}</span>
+                              <span>اتكلم يوم: {formatDateTime(assignment.calledAt, true)}</span>
                               {assignment.calledBy?.name && (
-                                <span className="text-muted-foreground">(بواسطة: {assignment.calledBy.name})</span>
+                                <span className="text-muted-foreground">(كلمه: {assignment.calledBy.name})</span>
                               )}
                             </div>
                           )}
@@ -251,9 +251,9 @@ export function ServantReportDialog({
                         <div className="flex items-center gap-1.5 shrink-0">
                           {tel && (
                             <Button variant="outline" size="sm" className="h-9 sm:h-8 gap-1 text-xs" asChild>
-                              <a href={tel} aria-label="اتصال">
+                              <a href={tel} aria-label="كلّمه">
                                 <Phone className="h-3.5 w-3.5 text-primary" />
-                                <span className="hidden sm:inline">اتصال</span>
+                                <span className="hidden sm:inline">كلّمه</span>
                               </a>
                             </Button>
                           )}
@@ -276,8 +276,8 @@ export function ServantReportDialog({
                               className="h-9 sm:h-8 text-muted-foreground hover:text-destructive"
                               disabled={isBusy}
                               onClick={() => setConfirmRemove(assignment)}
-                              aria-label="إلغاء التكليف"
-                              title="إلغاء التكليف"
+                              aria-label="شيل التكليف"
+                              title="شيل التكليف"
                             >
                               <UserMinus className="h-3.5 w-3.5" />
                             </Button>
@@ -298,9 +298,9 @@ export function ServantReportDialog({
                               {isBusy ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               ) : isCalled ? (
-                                'إلغاء الاتصال'
+                                'شيل الاتصال'
                               ) : (
-                                'تم الاتصال'
+                                'كلمته'
                               )}
                             </Button>
                           )}
@@ -314,9 +314,9 @@ export function ServantReportDialog({
           </div>
 
           <div className="pt-3 border-t mt-3 flex items-center justify-between text-xs text-muted-foreground shrink-0">
-            <span>المعروض: {filteredAssignments.length} مخدوم</span>
+            <span>قدامك: {filteredAssignments.length} مخدوم</span>
             <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} className="text-xs h-8">
-              إغلاق
+              اقفل
             </Button>
           </div>
         </DialogContent>
@@ -325,15 +325,15 @@ export function ServantReportDialog({
       <AlertDialog open={!!confirmRemove} onOpenChange={(o) => !o && setConfirmRemove(null)}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>إلغاء تكليف المخدوم؟</AlertDialogTitle>
+            <AlertDialogTitle>تشيل تكليف المخدوم؟</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم إزالة &quot;{confirmRemove?.servanteeId?.name}&quot; من مخدومي {servantData.servant.name}
-              {confirmRemove?.isCalled ? ' (مع حذف تسجيل الاتصال والملاحظة)' : ''}، وسيعود لقائمة المتاحين
+              &quot;{confirmRemove?.servanteeId?.name}&quot; هيتشال من مخدومين {servantData.servant.name}
+              {confirmRemove?.isCalled ? ' (وتسجيل الاتصال والملاحظة هيتمسحوا)' : ''}، ويرجع لقايمة المتاحين
               للتوزيع.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel>تراجع</AlertDialogCancel>
+            <AlertDialogCancel>رجوع</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-white hover:bg-destructive/90"
               onClick={() => {
@@ -342,7 +342,7 @@ export function ServantReportDialog({
                 if (a && onRemoveAssignment) run(a._id, () => onRemoveAssignment(a._id))
               }}
             >
-              إلغاء التكليف
+              أيوه، شيله
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

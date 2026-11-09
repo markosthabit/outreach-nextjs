@@ -15,10 +15,10 @@ export async function GET(
     const { servanteeId } = await params
 
     if (!(await getAuthUser(req))) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
     }
     if (!isValidObjectId(servanteeId)) {
-      return NextResponse.json({ message: 'Invalid id' }, { status: 400 })
+      return NextResponse.json({ message: 'المعرّف غلط' }, { status: 400 })
     }
 
     const retreats = await Retreat.find({ attendees: servanteeId })
@@ -29,6 +29,6 @@ export async function GET(
     return NextResponse.json({ retreats })
   } catch (error) {
     console.error('[GET /retreats/servantee/:servanteeId]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }

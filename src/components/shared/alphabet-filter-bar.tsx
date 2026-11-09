@@ -66,7 +66,7 @@ export function AlphabetFilterBar({
       <div className="flex items-center justify-between gap-2 px-1 text-xs">
         <div className="flex items-center gap-1.5 font-medium text-muted-foreground min-w-0">
           <Layers className="h-3.5 w-3.5 text-primary shrink-0" />
-          <span className="truncate">فهرس الحروف الأبجدية</span>
+          <span className="truncate">فهرس الحروف</span>
           {selectedLetter && (
             <span className="text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full text-[11px] shrink-0">
               حرف {selectedLetter} ({letterCounts[selectedLetter] || 0})
@@ -83,7 +83,7 @@ export function AlphabetFilterBar({
             className="h-6 w-6 text-muted-foreground hover:text-foreground rounded-full"
             onClick={() => scroll('right')}
             disabled={!canScrollStart}
-            aria-label="تمرير لليمين"
+            aria-label="لف يمين"
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
@@ -94,7 +94,7 @@ export function AlphabetFilterBar({
             className="h-6 w-6 text-muted-foreground hover:text-foreground rounded-full"
             onClick={() => scroll('left')}
             disabled={!canScrollEnd}
-            aria-label="تمرير لليسار"
+            aria-label="لف شمال"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
@@ -168,7 +168,7 @@ export function AlphabetFilterBar({
                   !hasItems && 'opacity-30 cursor-not-allowed text-muted-foreground/50 border border-transparent'
                 )}
                 aria-pressed={isSelected}
-                title={hasItems ? `حرف ${letter} (${count} مخدوم)` : `لا يوجد مخدومين بحرف ${letter}`}
+                title={hasItems ? `حرف ${letter} (${count} مخدوم)` : `مفيش مخدومين بحرف ${letter}`}
               >
                 <span>{letter}</span>
                 {hasItems && (

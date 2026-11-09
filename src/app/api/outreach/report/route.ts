@@ -11,20 +11,20 @@ export async function GET(req: NextRequest) {
     await connectDB()
     const authUser = await getAuthUser(req)
     if (!authUser || authUser.role !== 'Admin') {
-      return jsonError('غير مصرح لك بهذا الإجراء', 403)
+      return jsonError('مش مسموحلك تعمل كده', 403)
     }
 
     const { searchParams } = new URL(req.url)
     const roundId = searchParams.get('roundId')
 
-    if (!isValidObjectId(roundId)) return jsonError('معرّف الجولة غير صالح', 400)
+    if (!isValidObjectId(roundId)) return jsonError('معرّف الجولة غلط', 400)
 
     const round = await OutreachRound.findById(roundId)
       .populate('cycleId', 'name')
       .lean()
 
     if (!round) {
-      return jsonError('الجولة غير موجودة', 404)
+      return jsonError('الجولة مش موجودة', 404)
     }
 
     const assignments = await OutreachAssignment.find({ roundId })
@@ -109,6 +109,6 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('[GET /api/outreach/report]', error)
-    return jsonError('حدث خطأ في الخادم', 500)
+    return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)
   }
 }

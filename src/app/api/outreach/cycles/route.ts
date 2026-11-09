@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser) return jsonError('Unauthorized', 401)
+    if (!authUser) return jsonError('لازم تسجل دخول الأول', 401)
 
     const allCycles = await OutreachCycle.find()
       .populate('createdBy', 'name email')
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ activeCycle, cycles: allCycles })
   } catch (error) {
     console.error('[GET /api/outreach/cycles]', error)
-    return jsonError('حدث خطأ في الخادم', 500)
+    return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)
   }
 }
 
@@ -31,11 +31,11 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser || authUser.role !== 'Admin') return jsonError('غير مصرح لك بهذا الإجراء', 403)
+    if (!authUser || authUser.role !== 'Admin') return jsonError('مش مسموحلك تعمل كده', 403)
 
     const { name } = await req.json()
     if (!name || typeof name !== 'string' || !name.trim()) {
-      return jsonError('اسم الدورة مطلوب', 400)
+      return jsonError('اكتب اسم الدورة', 400)
     }
 
     // Close any previously active cycle together with its rounds
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ cycle: newCycle }, { status: 201 })
   } catch (error) {
     console.error('[POST /api/outreach/cycles]', error)
-    return jsonError('حدث خطأ في الخادم', 500)
+    return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)
   }
 }
 
@@ -66,18 +66,18 @@ export async function PATCH(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser || authUser.role !== 'Admin') return jsonError('غير مصرح لك بهذا الإجراء', 403)
+    if (!authUser || authUser.role !== 'Admin') return jsonError('مش مسموحلك تعمل كده', 403)
 
     const { cycleId, action } = await req.json()
-    if (!isValidObjectId(cycleId)) return jsonError('معرّف الدورة غير صالح', 400)
-    if (action !== 'end') return jsonError('إجراء غير صالح', 400)
+    if (!isValidObjectId(cycleId)) return jsonError('معرّف الدورة غلط', 400)
+    if (action !== 'end') return jsonError('العملية دي مش مفهومة', 400)
 
     const updated = await OutreachCycle.findByIdAndUpdate(
       cycleId,
       { status: 'completed', endedAt: new Date() },
       { new: true }
     )
-    if (!updated) return jsonError('الدورة غير موجودة', 404)
+    if (!updated) return jsonError('الدورة مش موجودة', 404)
 
     // Rounds of a closed cycle are closed too
     await OutreachRound.updateMany({ cycleId, status: 'active' }, { $set: { status: 'completed' } })
@@ -85,6 +85,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ cycle: updated })
   } catch (error) {
     console.error('[PATCH /api/outreach/cycles]', error)
-    return jsonError('حدث خطأ في الخادم', 500)
+    return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)
   }
 }

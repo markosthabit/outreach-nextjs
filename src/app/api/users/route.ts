@@ -14,14 +14,14 @@ export async function GET(req: NextRequest) {
 
     const authUser = await getAuthUser(req)
     if (!authUser) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
     }
 
     const users = await User.find().select('name email role').sort({ name: 1 }).lean()
     return NextResponse.json({ users })
   } catch (error) {
     console.error('[GET /users]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }
 
@@ -32,30 +32,30 @@ export async function POST(req: NextRequest) {
 
     const authUser = await getAuthUser(req)
     if (authUser?.role !== UserRole.ADMIN) {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ message: 'مش مسموحلك تعمل كده' }, { status: 403 })
     }
 
     const body = await readJson(req)
     const { name, email, password, role } = body ?? {}
 
     if (!isNonEmptyString(name, 100) || typeof email !== 'string' || typeof password !== 'string') {
-      return NextResponse.json({ message: 'Name, email and password are required' }, { status: 400 })
+      return NextResponse.json({ message: 'اكتب الاسم والإيميل وكلمة السر' }, { status: 400 })
     }
     const normalizedEmail = email.trim().toLowerCase()
     if (!EMAIL_RE.test(normalizedEmail) || normalizedEmail.length > 254) {
-      return NextResponse.json({ message: 'البريد الإلكتروني غير صالح' }, { status: 400 })
+      return NextResponse.json({ message: 'الإيميل غلط' }, { status: 400 })
     }
     // The schema's minlength runs on the bcrypt hash (always 60 chars), so check the raw value here
     if (password.length < 8 || password.length > 200) {
-      return NextResponse.json({ message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' }, { status: 400 })
+      return NextResponse.json({ message: 'كلمة السر لازم تبقى 8 حروف على الأقل' }, { status: 400 })
     }
     if (role !== undefined && role !== null && role !== '' && !Object.values(UserRole).includes(role)) {
-      return NextResponse.json({ message: 'Invalid role' }, { status: 400 })
+      return NextResponse.json({ message: 'الصلاحية غلط' }, { status: 400 })
     }
 
     const existing = await User.exists({ email: normalizedEmail })
     if (existing) {
-      return NextResponse.json({ message: 'A user with this email already exists' }, { status: 409 })
+      return NextResponse.json({ message: 'فيه حساب متسجل بالإيميل ده' }, { status: 409 })
     }
 
     const user = await User.create({
@@ -71,6 +71,6 @@ export async function POST(req: NextRequest) {
     )
   } catch (error) {
     console.error('[POST /users]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }

@@ -46,12 +46,12 @@ export function CreateRoundDialog({ open, onOpenChange, activeCycleId, onSuccess
     setEndDate(d.endDate)
   }, [open])
 
-  const dateError = startDate && endDate && startDate > endDate ? 'تاريخ البداية يجب أن يكون قبل تاريخ النهاية' : ''
+  const dateError = startDate && endDate && startDate > endDate ? 'تاريخ البداية لازم يبقى قبل تاريخ النهاية' : ''
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) return toast.error('يرجى إدخال اسم الجولة')
-    if (!startDate || !endDate) return toast.error('يرجى تحديد فترة الجولة')
+    if (!name.trim()) return toast.error('اكتب اسم الجولة')
+    if (!startDate || !endDate) return toast.error('حدد فترة الجولة')
     if (dateError) return toast.error(dateError)
 
     try {
@@ -60,11 +60,11 @@ export function CreateRoundDialog({ open, onOpenChange, activeCycleId, onSuccess
         method: 'POST',
         body: JSON.stringify({ cycleId: activeCycleId, name: name.trim(), startDate, endDate }),
       })
-      toast.success('تم إنشاء جولة الافتقاد بنجاح')
+      toast.success('الجولة اتعملت')
       onOpenChange(false)
       onSuccess()
     } catch (err: any) {
-      toast.error(err?.message || 'فشل إنشاء الجولة')
+      toast.error(err?.message || 'معرفناش نعمل الجولة')
     } finally {
       setLoading(false)
     }
@@ -79,10 +79,10 @@ export function CreateRoundDialog({ open, onOpenChange, activeCycleId, onSuccess
               <div className="p-2 bg-primary/10 rounded-full text-primary shrink-0">
                 <Plus className="h-5 w-5" />
               </div>
-              <DialogTitle className="text-lg">إنشاء جولة افتقاد جديدة</DialogTitle>
+              <DialogTitle className="text-lg">جولة افتقاد جديدة</DialogTitle>
             </div>
             <DialogDescription className="text-sm">
-              حدد اسم الجولة والفترة الزمنية المتاحة للخدام لإتمام الافتقاد.
+              اكتب اسم الجولة والفترة اللي الخدام هيفتقدوا فيها.
             </DialogDescription>
           </DialogHeader>
 
@@ -116,10 +116,10 @@ export function CreateRoundDialog({ open, onOpenChange, activeCycleId, onSuccess
 
           <DialogFooter className="gap-2 sm:gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              إلغاء
+              رجوع
             </Button>
             <Button type="submit" disabled={loading || !!dateError}>
-              {loading ? 'جاري الإنشاء...' : 'إنشاء الجولة'}
+              {loading ? 'بنعمل الجولة...' : 'اعمل الجولة'}
             </Button>
           </DialogFooter>
         </form>

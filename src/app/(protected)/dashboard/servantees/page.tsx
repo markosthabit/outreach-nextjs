@@ -83,7 +83,7 @@ function FilterChip({
       <button
         type="button"
         onClick={onRemove}
-        aria-label={`إزالة ${label}`}
+        aria-label={`شيل ${label}`}
         className="shrink-0 rounded-full p-1 hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer"
       >
         <X className="h-3 w-3" />
@@ -146,7 +146,7 @@ export default function ServanteesPage() {
       setAllServantees(res.servantees ?? [])
     } catch (err: any) {
       console.error(err)
-      setError(err.message || 'حدث خطأ أثناء تحميل البيانات')
+      setError(err.message || 'حصلت مشكلة وإحنا بنحمّل البيانات')
     } finally {
       setLoading(false)
     }
@@ -281,17 +281,17 @@ export default function ServanteesPage() {
   const handleDelete = async (id: string) => {
     try {
       await apiFetch(`/api/servantees/${id}`, { method: 'DELETE' })
-      toast.success('تم حذف المخدوم بنجاح')
+      toast.success('المخدوم اتمسح')
       setAllServantees((prev) => prev.filter((s) => s._id !== id))
     } catch (err: any) {
-      toast.error('حدث خطأ أثناء الحذف')
+      toast.error('حصلت مشكلة وإحنا بنمسح')
     }
   }
 
   // ── States ─────────────────────────────────────────────────
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <p className="text-muted-foreground animate-pulse">جاري التحميل...</p>
+      <p className="text-muted-foreground animate-pulse">بنحمّل...</p>
     </div>
   )
 
@@ -317,11 +317,11 @@ export default function ServanteesPage() {
           {isAdmin && <ImportServanteesDialog onImported={fetchServantees} />}
           <AddServanteeDialog
             existingServantees={allServantees}
-            selectExistingLabel="عرض المخدوم"
+            selectExistingLabel="وريني المخدوم"
             onAdded={fetchServantees}
             onSelectExisting={(existingServantee) => {
               setSearchTerm(existingServantee.name)
-              toast.info(`تم تصفية القائمة لعرض: ${existingServantee.name}`)
+              toast.info(`القايمة بتعرض دلوقتي: ${existingServantee.name}`)
             }}
           />
         </div>
@@ -338,7 +338,7 @@ export default function ServanteesPage() {
               ref={searchInputRef}
               type="search"
               enterKeyHint="search"
-              placeholder="ابحث بالاسم، التليفون، الكنيسة، الأبرشية..."
+              placeholder="دوّر بالاسم أو التليفون أو الكنيسة أو الإيبارشية..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               // text-base (16px) on mobile prevents iOS Safari from zooming on focus
@@ -349,7 +349,7 @@ export default function ServanteesPage() {
                 type="button"
                 onClick={() => setSearchTerm('')}
                 className="absolute left-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-2 cursor-pointer"
-                aria-label="مسح البحث"
+                aria-label="امسح البحث"
               >
                 <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               </button>
@@ -437,7 +437,7 @@ export default function ServanteesPage() {
               )}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              <span>تصفية مخصصة</span>
+              <span>فلترة على مزاجك</span>
               {(selectedChurch || selectedCollege) && (
                 <Badge variant="default" className="h-4.5 px-1.5 text-[10px] rounded-full">
                   {(selectedChurch ? 1 : 0) + (selectedCollege ? 1 : 0)}
@@ -460,8 +460,8 @@ export default function ServanteesPage() {
               </label>
               <FilterCombobox
                 label="الكنيسة"
-                placeholder="اختر كنيسة..."
-                searchPlaceholder="ابحث عن اسم الكنيسة..."
+                placeholder="اختار كنيسة..."
+                searchPlaceholder="دوّر على اسم الكنيسة..."
                 options={churchOptions}
                 value={selectedChurch}
                 onChange={setSelectedChurch}
@@ -476,8 +476,8 @@ export default function ServanteesPage() {
               </label>
               <FilterCombobox
                 label="الكلية / الدراسة"
-                placeholder="اختر كلية أو تخصص..."
-                searchPlaceholder="ابحث عن الكلية أو التخصص..."
+                placeholder="اختار كلية أو تخصص..."
+                searchPlaceholder="دوّر على الكلية أو التخصص..."
                 options={collegeOptions}
                 value={selectedCollege}
                 onChange={setSelectedCollege}
@@ -498,7 +498,7 @@ export default function ServanteesPage() {
                   className="h-10 md:h-9.5 w-full sm:w-auto justify-center px-3 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5 rounded-lg cursor-pointer"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  إعادة ضبط الكنيسة والكلية
+                  رجّع الكنيسة والكلية زي ما كانوا
                 </Button>
               </div>
             )}
@@ -522,7 +522,7 @@ export default function ServanteesPage() {
           {/* Result count + reset */}
           <div className="flex items-center justify-between gap-2">
             <div className="text-muted-foreground font-medium">
-              تم العثور على <span className="text-foreground font-semibold">{filtered.length}</span> من أصل{' '}
+              لقينا <span className="text-foreground font-semibold">{filtered.length}</span> من{' '}
               {allServantees.length}
             </div>
             <Button
@@ -533,13 +533,13 @@ export default function ServanteesPage() {
               className="h-8 sm:h-7 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1 shrink-0 cursor-pointer"
             >
               <RotateCcw className="h-3 w-3" />
-              إعادة ضبط الكل
+              رجّع كله زي ما كان
             </Button>
           </div>
 
           {/* Chips: single swipeable row on mobile, wrapping on desktop */}
           <div className="flex items-center gap-1.5 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-1 px-1 pb-0.5 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-            <span className="hidden sm:inline text-muted-foreground font-medium ml-1">الفلاتر النشطة:</span>
+            <span className="hidden sm:inline text-muted-foreground font-medium ml-1">الفلاتر الشغالة:</span>
             {selectedLetter && (
               <FilterChip label={`حرف: ${selectedLetter}`} onRemove={() => setSelectedLetter(null)} />
             )}
@@ -581,14 +581,14 @@ export default function ServanteesPage() {
                 <TableHead className="text-right w-[25%] min-w-[190px] max-w-[290px]">الكنيسة / الأبرشية</TableHead>
                 <TableHead className="text-right w-[11%] min-w-[95px] whitespace-nowrap">تاريخ الميلاد</TableHead>
                 <TableHead className="text-right w-[22%] min-w-[170px] max-w-[260px]">الكلية / الفرقة</TableHead>
-                <TableHead className="text-left w-[220px] min-w-[220px] shrink-0">الإجراءات</TableHead>
+                <TableHead className="text-left w-[220px] min-w-[220px] shrink-0">خيارات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginated.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
-                    لا يوجد مخدومين
+                    مفيش مخدومين
                   </TableCell>
                 </TableRow>
               ) : (
@@ -600,12 +600,12 @@ export default function ServanteesPage() {
                           {s.name}
                         </span>
                         {hasBirthdayThisMonth(s) && (
-                          <span title="عيد ميلاده هذا الشهر" className="shrink-0 flex items-center">
+                          <span title="عيد ميلاده الشهر ده" className="shrink-0 flex items-center">
                             <Gift className="h-4 w-4 text-pink-500" />
                           </span>
                         )}
                         {isInactive(s) && (
-                          <span title="لم يحضر خلوة منذ 3 أشهر" className="shrink-0 flex items-center">
+                          <span title="مجاش خلوة من 3 شهور" className="shrink-0 flex items-center">
                             <AlertTriangle className="h-4 w-4 text-amber-500" />
                           </span>
                         )}
@@ -620,7 +620,7 @@ export default function ServanteesPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center justify-center w-8 h-8 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"
-                            title="مراسلة واتساب"
+                            title="ابعتله واتساب"
                           >
                             <IconBrandWhatsapp size={18} stroke={1.5} />
                           </a>
@@ -681,8 +681,8 @@ export default function ServanteesPage() {
                             />
                             <ConfirmDeleteDialog
                               onConfirm={() => handleDelete(s._id)}
-                              title="حذف مخدوم"
-                              description="هل أنت متأكد أنك ترغب في حذف هذا المخدوم؟ لن يمكنك استرجاع البيانات مرة أخرى."
+                              title="تمسح المخدوم؟"
+                              description="متأكد إنك عايز تمسح المخدوم ده؟ مش هتقدر ترجّع بياناته تاني."
                               size="icon"
                             />
                           </>
@@ -700,7 +700,7 @@ export default function ServanteesPage() {
       {/* Mobile Cards */}
       <div className="lg:hidden space-y-3">
         {paginated.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">لا يوجد مخدومين</p>
+          <p className="text-center text-muted-foreground py-12">مفيش مخدومين</p>
         ) : (
           paginated.map((s) => (
             <Card key={s._id} className="p-4 space-y-3">
@@ -709,12 +709,12 @@ export default function ServanteesPage() {
                   <div className="flex items-center gap-2 min-w-0">
                     <p className="font-semibold text-base truncate" title={s.name}>{s.name}</p>
                     {hasBirthdayThisMonth(s) && (
-                      <span title="عيد ميلاده هذا الشهر" className="shrink-0 flex items-center">
+                      <span title="عيد ميلاده الشهر ده" className="shrink-0 flex items-center">
                         <Gift className="h-4 w-4 text-pink-500" />
                       </span>
                     )}
                     {isInactive(s) && (
-                      <span title="لم يحضر خلوة منذ 3 أشهر" className="shrink-0 flex items-center">
+                      <span title="مجاش خلوة من 3 شهور" className="shrink-0 flex items-center">
                         <AlertTriangle className="h-4 w-4 text-amber-500" />
                       </span>
                     )}
@@ -727,7 +727,7 @@ export default function ServanteesPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center w-11 h-11 -ml-3 rounded-full text-muted-foreground hover:text-green-600 hover:bg-green-500/10 transition-colors active:bg-green-500/20"
-                        title="مراسلة واتساب"
+                        title="ابعتله واتساب"
                       >
                         <IconBrandWhatsapp size={24} stroke={1.5} />
                       </a>
@@ -735,7 +735,7 @@ export default function ServanteesPage() {
                   </div>
                 </div>
                 {/* <Badge variant={s.isActive ? 'default' : 'secondary'} className="text-xs shrink-0">
-                  {s.isActive ? 'نشط' : 'غير نشط'}
+                  {s.isActive ? 'منتظم' : 'منقطع'}
                 </Badge> */}
               </div>
 
@@ -766,8 +766,8 @@ export default function ServanteesPage() {
                     <EditServanteeDialog servantee={s} onUpdated={fetchServantees} />
                     <ConfirmDeleteDialog
                       onConfirm={() => handleDelete(s._id)}
-                      title="حذف مخدوم"
-                      description="هل أنت متأكد أنك ترغب في حذف هذا المخدوم؟ لن يمكنك استرجاع البيانات مرة أخرى."
+                      title="تمسح المخدوم؟"
+                      description="متأكد إنك عايز تمسح المخدوم ده؟ مش هتقدر ترجّع بياناته تاني."
                       size="icon"
                     />
                   </>
@@ -787,7 +787,7 @@ export default function ServanteesPage() {
           disabled={page === 1}
         >
           <ChevronRight className="h-4 w-4 ml-1" />
-          السابق
+          اللي قبل
         </Button>
         <span className="text-sm text-muted-foreground">
           {page} / {totalPages}
@@ -798,7 +798,7 @@ export default function ServanteesPage() {
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page >= totalPages}
         >
-          التالي
+          اللي بعد
           <ChevronLeft className="h-4 w-4 mr-1" />
         </Button>
       </div>

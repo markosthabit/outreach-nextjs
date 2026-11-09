@@ -27,7 +27,7 @@ import {
 } from '@/lib/servantee-filters'
 
 const servanteeSchema = z.object({
-  name: z.string().min(1, 'الإسم مطلوب'),
+  name: z.string().min(1, 'اكتب الاسم'),
   phone: z.string().optional(),
   diocese: z.string().optional(),
   birthDate: z.string().optional(),
@@ -61,7 +61,7 @@ export function AddServanteeDialog({
   onAdded,
   onSelectExisting,
   existingServantees,
-  selectExistingLabel = 'اختيار المخدوم',
+  selectExistingLabel = 'اختار المخدوم ده',
 }: {
   onAdded?: (newServantee?: ServanteeResponse) => void | Promise<void>
   onSelectExisting?: (servantee: ServanteeResponse) => void | Promise<void>
@@ -138,7 +138,7 @@ export function AddServanteeDialog({
         method: 'POST',
         body: JSON.stringify(values),
       })
-      toast.success('تم إضافة المخدوم بنجاح ✅', {
+      toast.success('المخدوم اتضاف ✅', {
         description: `الإسم: ${values.name}`,
         duration: 3000,
       })
@@ -149,9 +149,9 @@ export function AddServanteeDialog({
       }
     } catch (err: any) {
       if (err?.statusCode === 409) {
-        toast.error('رقم التليفون مستخدم بالفعل!')
+        toast.error('رقم التليفون ده متسجل قبل كده!')
       } else {
-        toast.error(err?.message || 'حدث خطأ أثناء الإضافة')
+        toast.error(err?.message || 'حصلت مشكلة وإحنا بنضيف')
       }
     } finally {
       setLoading(false)
@@ -166,13 +166,13 @@ export function AddServanteeDialog({
       <DialogTrigger asChild>
         <Button className="w-full sm:w-auto gap-2">
           <UserPlus className="h-4 w-4" />
-          إضافة مخدوم
+          ضيف مخدوم
         </Button>
       </DialogTrigger>
 
       <DialogContent dir="rtl" className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto rounded-xl">
         <DialogHeader>
-          <DialogTitle>إضافة مخدوم جديد</DialogTitle>
+          <DialogTitle>ضيف مخدوم جديد</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
@@ -194,8 +194,8 @@ export function AddServanteeDialog({
                     options={churchOptions}
                     normalizer={normalizeChurchName}
                     icon={<Church className="h-3.5 w-3.5" />}
-                    placeholder="اكتب اسم الكنيسة أو اختر من المقترحات..."
-                    labelTitle="الكنائس الأكثر تسجيلاً"
+                    placeholder="اكتب اسم الكنيسة أو اختار من الاقتراحات..."
+                    labelTitle="الكنايس اللي متسجلة أكتر"
                     className="mt-1"
                   />
                 ) : key === 'education' ? (
@@ -206,8 +206,8 @@ export function AddServanteeDialog({
                     options={collegeOptions}
                     normalizer={normalizeCollegeName}
                     icon={<GraduationCap className="h-3.5 w-3.5" />}
-                    placeholder="اكتب الكلية أو التخصص أو اختر من المقترحات..."
-                    labelTitle="الكليات الأكثر تسجيلاً"
+                    placeholder="اكتب الكلية أو التخصص أو اختار من الاقتراحات..."
+                    labelTitle="الكليات اللي متسجلة أكتر"
                     className="mt-1"
                   />
                 ) : (
@@ -230,10 +230,10 @@ export function AddServanteeDialog({
                     <div className="flex items-center justify-between text-xs font-medium text-amber-900 dark:text-amber-200">
                       <div className="flex items-center gap-1.5">
                         <Users className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                        <span>مخدومون بأسماء مشابهة ({similarServantees.length})</span>
+                        <span>مخدومين أساميهم شبه كده ({similarServantees.length})</span>
                       </div>
                       <span className="text-[11px] text-amber-700/80 dark:text-amber-400/80">
-                        قد يكون مسجلاً برقم آخر
+                        ممكن يكون متسجل برقم تاني
                       </span>
                     </div>
 
@@ -256,7 +256,7 @@ export function AddServanteeDialog({
                                     : 'bg-muted text-muted-foreground'
                                 }`}
                               >
-                                {score >= 90 ? 'تطابق كبير' : 'تشابه'}
+                                {score >= 90 ? 'شبهه جداً' : 'شبهه'}
                               </Badge>
                             </div>
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground mt-0.5">
@@ -283,7 +283,7 @@ export function AddServanteeDialog({
                     </div>
 
                     <p className="text-[11px] text-muted-foreground pt-1 border-t border-amber-200/50 dark:border-amber-900/40">
-                      💡 إذا كان شخصاً مختلفاً، تابع ملء البيانات واضغط &quot;إضافة&quot; بشكل طبيعي.
+                      💡 لو ده شخص تاني، كمّل البيانات ودوس &quot;ضيف&quot; عادي.
                     </p>
                   </div>
                 )}
@@ -293,7 +293,7 @@ export function AddServanteeDialog({
                   <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 mt-1.5 bg-red-50 dark:bg-red-950/40 p-2 rounded-md border border-red-200 dark:border-red-900">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span>
-                      هذا الرقم مسجل بالفعل للمخدوم: <strong>{phoneDuplicate.name}</strong>
+                      الرقم ده متسجل للمخدوم: <strong>{phoneDuplicate.name}</strong>
                     </span>
                   </div>
                 )}
@@ -306,7 +306,7 @@ export function AddServanteeDialog({
             disabled={loading || !!phoneDuplicate}
             className="w-full"
           >
-            {loading ? 'جاري الحفظ...' : phoneDuplicate ? 'رقم التليفون مسجل بالفعل' : 'إضافة'}
+            {loading ? 'بنحفظ...' : phoneDuplicate ? 'الرقم ده متسجل قبل كده' : 'ضيف'}
           </Button>
         </form>
       </DialogContent>

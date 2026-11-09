@@ -40,8 +40,8 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
   onConfirm,
   trigger,
   triggerLabel,
-  title = 'تأكيد الحذف',
-  description = 'هل أنت متأكد أنك ترغب في حذف هذا العنصر؟ لن يمكنك استرجاع البيانات مرة أخرى.',
+  title = 'متأكد إنك عايز تمسح؟',
+  description = 'متأكد إنك عايز تمسح ده؟ مش هتقدر ترجّعه تاني.',
   variant = 'destructive',
   size = 'icon',
   className,
@@ -80,12 +80,12 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          <AlertDialogCancel>رجوع</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             className="bg-red-600 hover:bg-red-700"
           >
-            حذف
+            امسح
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

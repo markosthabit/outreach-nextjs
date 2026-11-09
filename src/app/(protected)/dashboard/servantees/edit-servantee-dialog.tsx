@@ -25,7 +25,7 @@ import {
 } from '@/lib/servantee-filters'
 
 const servanteeSchema = z.object({
-  name: z.string().min(1, 'الإسم مطلوب'),
+  name: z.string().min(1, 'اكتب الاسم'),
   phone: z.string().optional(),
   diocese: z.string().optional(),
   birthDate: z.string().optional(),
@@ -96,14 +96,14 @@ export function EditServanteeDialog({
         method: 'PATCH',
         body: JSON.stringify(values),
       })
-      toast.success('تم تحديث بيانات المخدوم')
+      toast.success('بيانات المخدوم اتحدثت')
       onUpdated()
       setOpen(false)
     } catch (err: any) {
       if (err?.statusCode === 409) {
-        toast.error('رقم التليفون مستخدم بالفعل!')
+        toast.error('رقم التليفون ده متسجل قبل كده!')
       } else {
-        toast.error(err?.message || 'حدث خطأ أثناء التحديث')
+        toast.error(err?.message || 'حصلت مشكلة وإحنا بنحدّث')
       }
     } finally {
       setLoading(false)
@@ -120,7 +120,7 @@ export function EditServanteeDialog({
 
       <DialogContent dir="rtl" className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto rounded-xl">
         <DialogHeader>
-          <DialogTitle>تعديل بيانات المخدوم</DialogTitle>
+          <DialogTitle>عدّل بيانات المخدوم</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
@@ -142,8 +142,8 @@ export function EditServanteeDialog({
                     options={churchOptions}
                     normalizer={normalizeChurchName}
                     icon={<Church className="h-3.5 w-3.5" />}
-                    placeholder="اكتب اسم الكنيسة أو اختر..."
-                    labelTitle="الكنائس المقترحة"
+                    placeholder="اكتب اسم الكنيسة أو اختار..."
+                    labelTitle="كنايس مقترحة"
                     className="mt-1"
                   />
                 ) : key === 'education' ? (
@@ -154,8 +154,8 @@ export function EditServanteeDialog({
                     options={collegeOptions}
                     normalizer={normalizeCollegeName}
                     icon={<GraduationCap className="h-3.5 w-3.5" />}
-                    placeholder="اكتب الكلية أو اختر..."
-                    labelTitle="الكليات المقترحة"
+                    placeholder="اكتب الكلية أو اختار..."
+                    labelTitle="كليات مقترحة"
                     className="mt-1"
                   />
                 ) : (
@@ -172,7 +172,7 @@ export function EditServanteeDialog({
           </div>
 
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'جاري الحفظ...' : 'تحديث'}
+            {loading ? 'بنحفظ...' : 'احفظ'}
           </Button>
         </form>
       </DialogContent>

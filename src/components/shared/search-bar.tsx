@@ -9,7 +9,7 @@ export function SearchBar({ value, onChange, placeholder }: {
   return (
     <div className="flex gap-2 w-full sm:w-1/2">
       <Input
-        placeholder={placeholder || 'ابحث...'}
+        placeholder={placeholder || 'دوّر...'}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         type="text"

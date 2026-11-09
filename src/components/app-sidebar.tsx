@@ -14,6 +14,7 @@ import {
   IconInnerShadowTop,
   IconListDetails,
   IconPhoneCall,
+  IconDatabaseExport,
   IconReport,
   IconSearch,
   IconSettings,
@@ -129,6 +130,12 @@ const data = {
       url: "/dashboard/search",
       icon: IconSearch,
     },
+    {
+      title: "النسخ الاحتياطي",
+      url: "/dashboard/backup",
+      icon: IconDatabaseExport,
+      adminOnly: true,
+    },
   ],
 
       
@@ -138,7 +145,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const { user } = useAuth();
-      data.user.name = user?.role ?? data.user.name;
+  data.user.name = user ? (user.role === 'Admin' ? 'مسؤول' : 'خادم') : data.user.name;
   data.user.email = user?.email ?? data.user.email;
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -162,7 +169,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarSeparator></SidebarSeparator>
      <SidebarContent>
-        <NavMain items={data.navSecondary} />
+        <NavMain items={data.navSecondary.filter((item) => !('adminOnly' in item) || user?.role === 'Admin')} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

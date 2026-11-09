@@ -9,7 +9,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "ذوقوا وإنظروا",
-  description: "نظام متابعة المخدومين",
+  description: "سيستم متابعة المخدومين",
 };
 
 export default function RootLayout({

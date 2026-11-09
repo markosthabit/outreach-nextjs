@@ -13,18 +13,18 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!authUser) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
     if (authUser.role !== UserRole.ADMIN) {
-      return NextResponse.json({ message: 'Only admins can import servantees' }, { status: 403 })
+      return NextResponse.json({ message: 'المسؤولين بس اللي يقدروا يستوردوا مخدومين' }, { status: 403 })
     }
 
     const body = await readJson(req)
     const rows = body?.servantees
     if (!Array.isArray(rows)) {
-      return NextResponse.json({ message: 'Invalid data format, expected array of servantees.' }, { status: 400 })
+      return NextResponse.json({ message: 'شكل البيانات غلط، المفروض تبقى قايمة مخدومين' }, { status: 400 })
     }
     if (rows.length > MAX_ROWS) {
-      return NextResponse.json({ message: `لا يمكن استيراد أكثر من ${MAX_ROWS} صف في المرة الواحدة` }, { status: 400 })
+      return NextResponse.json({ message: `مينفعش تستورد أكتر من ${MAX_ROWS} صف مرة واحدة` }, { status: 400 })
     }
 
     const errors: string[] = []
@@ -52,9 +52,9 @@ export async function POST(req: NextRequest) {
     const toInsert: any[] = []
     for (const { row, data } of valid) {
       if (existingPhones.has(data.phone)) {
-        errors.push(`الصف رقم ${row} (${data.name}): رقم التليفون ${data.phone} موجود مسبقاً.`)
+        errors.push(`الصف رقم ${row} (${data.name}): رقم التليفون ${data.phone} متسجل قبل كده`)
       } else if (seenInFile.has(data.phone!)) {
-        errors.push(`الصف رقم ${row} (${data.name}): رقم التليفون ${data.phone} مكرر في الملف.`)
+        errors.push(`الصف رقم ${row} (${data.name}): رقم التليفون ${data.phone} متكرر في الملف`)
       } else {
         seenInFile.add(data.phone!)
         toInsert.push({ ...data, createdBy: authUser.sub, updatedBy: authUser.sub })
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       } catch (err: any) {
         // ordered:false keeps going past duplicates; report what made it in
         importedCount = err?.insertedDocs?.length ?? err?.result?.insertedCount ?? 0
-        errors.push(`تعذر حفظ ${toInsert.length - importedCount} صف بسبب تعارض في البيانات.`)
+        errors.push(`معرفناش نحفظ ${toInsert.length - importedCount} صف عشان فيه تعارض في البيانات`)
       }
     }
 
@@ -80,6 +80,6 @@ export async function POST(req: NextRequest) {
     })
   } catch (error) {
     console.error('[POST /servantees/import]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }

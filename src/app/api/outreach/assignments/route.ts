@@ -15,15 +15,15 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser) return jsonError('Unauthorized', 401)
+    if (!authUser) return jsonError('لازم تسجل دخول الأول', 401)
 
     const { searchParams } = new URL(req.url)
     const roundId = searchParams.get('roundId')
     const requestedServantId = searchParams.get('servantId')
 
-    if (roundId && !isValidObjectId(roundId)) return jsonError('معرّف الجولة غير صالح', 400)
+    if (roundId && !isValidObjectId(roundId)) return jsonError('معرّف الجولة غلط', 400)
     if (requestedServantId && !isValidObjectId(requestedServantId)) {
-      return jsonError('معرّف الخادم غير صالح', 400)
+      return jsonError('معرّف الخادم غلط', 400)
     }
 
     const query: Record<string, unknown> = {}
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ assignments })
   } catch (error) {
     console.error('[GET /api/outreach/assignments]', error)
-    return jsonError('حدث خطأ في الخادم', 500)
+    return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)
   }
 }
 
@@ -79,32 +79,32 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser || authUser.role !== 'Admin') return jsonError('غير مصرح لك بهذا الإجراء', 403)
+    if (!authUser || authUser.role !== 'Admin') return jsonError('مش مسموحلك تعمل كده', 403)
 
     const { roundId, servantId, servanteeIds } = await req.json()
 
-    if (!isValidObjectId(roundId)) return jsonError('يرجى اختيار جولة صالحة', 400)
-    if (!isValidObjectId(servantId)) return jsonError('يرجى اختيار خادم صالح', 400)
+    if (!isValidObjectId(roundId)) return jsonError('اختار جولة صحيحة', 400)
+    if (!isValidObjectId(servantId)) return jsonError('اختار خادم صحيح', 400)
     if (!Array.isArray(servanteeIds) || servanteeIds.length === 0) {
-      return jsonError('يرجى تحديد مخدوم واحد على الأقل', 400)
+      return jsonError('حدد مخدوم واحد على الأقل', 400)
     }
     if (servanteeIds.length > MAX_ASSIGN_BATCH) {
-      return jsonError(`لا يمكن إسناد أكثر من ${MAX_ASSIGN_BATCH} مخدوم في المرة الواحدة`, 400)
+      return jsonError(`مينفعش توزع أكتر من ${MAX_ASSIGN_BATCH} مخدوم مرة واحدة`, 400)
     }
     const uniqueIds = [...new Set(servanteeIds)]
-    if (!uniqueIds.every(isValidObjectId)) return jsonError('قائمة المخدومين تحتوي على معرّفات غير صالحة', 400)
+    if (!uniqueIds.every(isValidObjectId)) return jsonError('قايمة المخدومين فيها معرّفات غلط', 400)
 
     const round = await OutreachRound.findById(roundId)
-    if (!round) return jsonError('الجولة غير موجودة', 404)
-    if (round.status !== 'active') return jsonError('لا يمكن الإسناد لجولة مكتملة', 400)
+    if (!round) return jsonError('الجولة مش موجودة', 404)
+    if (round.status !== 'active') return jsonError('مينفعش توزع على جولة خلصت', 400)
 
     const cycle = await OutreachCycle.findById(round.cycleId).select('status').lean()
     if (!cycle || (cycle as any).status !== 'active') {
-      return jsonError('لا يمكن الإسناد لجولة في دورة منتهية', 400)
+      return jsonError('مينفعش توزع على جولة في دورة خلصت', 400)
     }
 
     const servantExists = await User.exists({ _id: servantId })
-    if (!servantExists) return jsonError('الخادم غير موجود', 404)
+    if (!servantExists) return jsonError('الخادم مش موجود', 404)
 
     const cycleId = round.cycleId
 
@@ -135,14 +135,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       message:
         skipped > 0
-          ? `تم إسناد ${assigned} مخدوم، وتم تخطي ${skipped} لأنهم مكلفون بالفعل في هذه الدورة`
-          : `تم إسناد ${assigned} مخدوم بنجاح`,
+          ? `اتوزع ${assigned} مخدوم، واتساب ${skipped} عشان متوزعين أصلاً في الدورة دي`
+          : `اتوزع ${assigned} مخدوم`,
       upsertedCount: assigned,
       skippedCount: skipped,
     })
   } catch (error) {
     console.error('[POST /api/outreach/assignments]', error)
-    return jsonError('فشل إسناد المخدومين', 500)
+    return jsonError('التوزيع فشل، جرّب تاني', 500)
   }
 }
 
@@ -151,17 +151,17 @@ export async function DELETE(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
-    if (!authUser || authUser.role !== 'Admin') return jsonError('غير مصرح لك بهذا الإجراء', 403)
+    if (!authUser || authUser.role !== 'Admin') return jsonError('مش مسموحلك تعمل كده', 403)
 
     const assignmentId = new URL(req.url).searchParams.get('assignmentId')
-    if (!isValidObjectId(assignmentId)) return jsonError('معرّف التكليف غير صالح', 400)
+    if (!isValidObjectId(assignmentId)) return jsonError('معرّف التكليف غلط', 400)
 
     const deleted = await OutreachAssignment.findByIdAndDelete(assignmentId)
-    if (!deleted) return jsonError('التكليف غير موجود', 404)
+    if (!deleted) return jsonError('التكليف مش موجود', 404)
 
-    return NextResponse.json({ message: 'تم إلغاء التكليف وإعادة المخدوم لقائمة المتاحين' })
+    return NextResponse.json({ message: 'التكليف اتلغى والمخدوم رجع لقايمة المتاحين' })
   } catch (error) {
     console.error('[DELETE /api/outreach/assignments]', error)
-    return jsonError('حدث خطأ في الخادم', 500)
+    return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)
   }
 }

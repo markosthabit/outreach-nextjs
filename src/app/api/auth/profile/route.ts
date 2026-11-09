@@ -10,13 +10,13 @@ export async function GET(req: NextRequest) {
     const authUser = await getAuthUser(req)
 
     if (!authUser) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
     }
 
     const user = await User.findById(authUser.sub)
 
     if (!user) {
-      return NextResponse.json({ message: 'User not found' }, { status: 404 })
+      return NextResponse.json({ message: 'الحساب مش موجود' }, { status: 404 })
     }
 
     return NextResponse.json({
@@ -24,6 +24,6 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('[PROFILE]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }

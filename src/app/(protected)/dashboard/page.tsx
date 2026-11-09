@@ -52,7 +52,7 @@ export default function DashboardPage() {
       })
     } catch (err) {
       console.error('Dashboard fetch failed:', err)
-      toast.error('فشل تحميل البيانات 😢')
+      toast.error('معرفناش نحمّل البيانات 😢')
     } finally {
       setLoading(false)
     }
@@ -72,7 +72,7 @@ export default function DashboardPage() {
           سلام ونعمة 👋
         </h1>
         <p className="text-muted-foreground mt-1">
-          نظرة سريعة على نشاط الخدمة
+          بص بسرعة على الخدمة ماشية إزاي
         </p>
       </section>
 
@@ -111,7 +111,7 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">
               {loading
                 ? ''
-                : `${stats.upcomingRetreats} خلوة قادمة`}
+                : `${stats.upcomingRetreats} خلوة جاية`}
             </p>
           </CardContent>
         </Card>
@@ -155,17 +155,17 @@ export default function DashboardPage() {
       <section className="mt-8">
         <Card className="p-6 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold">جاهز للخدمة؟</h2>
+            <h2 className="text-xl font-semibold">جاهز تخدم؟</h2>
             <p className="text-sm text-muted-foreground">
-              ابدأ بإضافة مخدومين أو تنظيم خلوة جديدة.
+              ابدأ ضيف مخدومين أو نظّم خلوة جديدة.
             </p>
           </div>
           <div className="flex gap-2">
             <Button onClick={() => router.push('dashboard/servantees')}>
-              إضافة مخدوم
+              ضيف مخدوم
             </Button>
             <Button onClick={() => router.push('dashboard/retreats')}>
-              إضافة خلوة
+              ضيف خلوة
             </Button>
           </div>
 

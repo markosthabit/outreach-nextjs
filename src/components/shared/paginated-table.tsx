@@ -24,7 +24,7 @@ export function PaginatedTable({
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1 || loading}
         >
-          ⬅️ السابق
+          ⬅️ اللي قبل
         </Button>
         <span className="self-center font-medium">الصفحة {page}</span>
         <Button
@@ -33,7 +33,7 @@ export function PaginatedTable({
           onClick={() => setPage((p) => p + 1)}
           disabled={!hasMore || loading}
         >
-          التالي ➡️
+          اللي بعد ➡️
         </Button>
       </div>
     </div>

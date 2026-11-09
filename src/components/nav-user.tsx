@@ -79,7 +79,7 @@ export function NavUser({ user }: { user: { name: string; email: string; avatar:
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push("/logout")}>
               <IconLogout />
-              Log out
+              اخرج من حسابك
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

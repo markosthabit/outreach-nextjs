@@ -11,7 +11,7 @@ export function GenerateAttendeesReport({ retreat }: { retreat: any }) {
   const attendees = useMemo(() => {
     const arr = (retreat.attendees || []) as any[]
     return arr.map(a => ({
-      name: typeof a === 'string' ? 'غير معروف' : a.name || 'غير معروف',
+      name: typeof a === 'string' ? 'مش معروف' : a.name || 'مش معروف',
       phone: typeof a === 'string' ? '-' : a.phone || '-',
     }))
   }, [retreat.attendees])
@@ -43,9 +43,9 @@ export function GenerateAttendeesReport({ retreat }: { retreat: any }) {
       })
 
       doc.save(`مشاركين_${retreat.name}.pdf`)
-      toast.success("تم إنشاء PDF")
+      toast.success("ملف الـ PDF نزل")
     } catch {
-      toast.error("خطأ في PDF")
+      toast.error("حصلت مشكلة في الـ PDF")
     } finally {
       setLoadingPdf(false)
     }
@@ -60,9 +60,9 @@ export function GenerateAttendeesReport({ retreat }: { retreat: any }) {
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, "Attendees")
       XLSX.writeFile(wb, `مشاركين_${retreat.name}.xlsx`)
-      toast.success("تم إنشاء Excel")
+      toast.success("ملف الإكسيل نزل")
     } catch {
-      toast.error("خطأ في Excel")
+      toast.error("حصلت مشكلة في الإكسيل")
     } finally {
       setLoadingExcel(false)
     }
@@ -71,10 +71,10 @@ export function GenerateAttendeesReport({ retreat }: { retreat: any }) {
   return (
     <div className="flex flex-col gap-2">
       <Button onClick={handlePDF} disabled={loadingPdf}>
-        {loadingPdf ? "PDF..." : " تصدير المشاركين PDF"}
+        {loadingPdf ? "PDF..." : "نزّل المشاركين PDF"}
       </Button>
       <Button onClick={handleExcel} disabled={loadingExcel}>
-        {loadingExcel ? "Excel..." : "تصدير المشاركين Excel"}
+        {loadingExcel ? "Excel..." : "نزّل المشاركين Excel"}
       </Button>
     </div>
   )

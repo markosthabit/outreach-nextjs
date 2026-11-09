@@ -19,10 +19,10 @@ import { useAuth } from '@/contexts/AuthContext'
 
 const servantFields = [
   { name: 'name', label: 'الإسم', type: 'text', required: true },
-  { name: 'email', label: 'البريد الإلكتروني', type: 'email', required: true },
-  { name: 'password', label: 'كلمة المرور', type: 'password', required: true },
+  { name: 'email', label: 'الإيميل', type: 'email', required: true },
+  { name: 'password', label: 'كلمة السر', type: 'password', required: true },
   {
-    name: 'role', label: 'الدور', type: 'select',
+    name: 'role', label: 'الصلاحية', type: 'select',
     options: [
       { value: 'Admin', label: 'مسؤول' },
       { value: 'Servant', label: 'خادم' },
@@ -52,7 +52,7 @@ export default function ServantsPage() {
       const res = await apiFetch<{ users: any[] }>('/api/users')
       setServants(res.users ?? [])
     } catch {
-      toast.error('فشل تحميل قائمة الخدام')
+      toast.error('معرفناش نحمّل قايمة الخدام')
     } finally {
       setLoading(false)
     }
@@ -66,7 +66,7 @@ export default function ServantsPage() {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground animate-pulse">جارٍ التحميل...</p>
+        <p className="text-muted-foreground animate-pulse">بنحمّل...</p>
       </div>
     )
   }
@@ -74,8 +74,8 @@ export default function ServantsPage() {
   if (!isAdmin) {
     return (
       <Card className="p-6 max-w-md mx-auto mt-20 text-center shadow-sm">
-        <h2 className="text-xl font-semibold mb-2">غير مسموح بالوصول</h2>
-        <p className="text-muted-foreground">هذه الصفحة متاحة فقط للمسؤولين.</p>
+        <h2 className="text-xl font-semibold mb-2">مش مسموحلك تدخل هنا</h2>
+        <p className="text-muted-foreground">الصفحة دي للمسؤولين بس.</p>
       </Card>
     )
   }
@@ -92,14 +92,14 @@ export default function ServantsPage() {
           <Badge variant="secondary">{filtered.length}</Badge>
         </div>
         <EntityDialog
-          title="إضافة خادم جديد"
+          title="ضيف خادم جديد"
           endpoint="api/users"
           fields={servantFields}
           mode="create"
           onSuccess={fetchServants}
           trigger={
             <Button className="w-full lg:w-auto gap-2">
-              <Plus className="w-4 h-4" /> إضافة خادم
+              <Plus className="w-4 h-4" /> ضيف خادم
             </Button>
           }
         />
@@ -108,34 +108,34 @@ export default function ServantsPage() {
       <SearchBar
         value={searchTerm}
         onChange={setSearchTerm}
-        placeholder="ابحث عن خادم بالاسم أو البريد..."
+        placeholder="دوّر على خادم بالاسم أو الإيميل..."
       />
 
       {/* Desktop Table */}
       <Card className="hidden lg:block p-4 shadow-sm overflow-x-auto">
         <Table className="min-w-full text-right">
           <TableCaption>
-            {filtered.length === 0 && !loading ? 'لا يوجد نتائج' : `عدد الخدام: ${filtered.length}`}
+            {filtered.length === 0 && !loading ? 'مفيش نتايج' : `عدد الخدام: ${filtered.length}`}
           </TableCaption>
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="text-right">الإسم</TableHead>
-              <TableHead className="text-right">البريد الإلكتروني</TableHead>
-              <TableHead className="text-right">الدور</TableHead>
-              <TableHead className="text-right w-[140px]">الإجراءات</TableHead>
+              <TableHead className="text-right">الإيميل</TableHead>
+              <TableHead className="text-right">الصلاحية</TableHead>
+              <TableHead className="text-right w-[140px]">خيارات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground py-12 animate-pulse">
-                  جاري التحميل...
+                  بنحمّل...
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
-                  لا يوجد نتائج
+                  مفيش نتايج
                 </TableCell>
               </TableRow>
             ) : (
@@ -151,7 +151,7 @@ export default function ServantsPage() {
                   <TableCell>
                     <div className="flex gap-1 justify-end">
                       <EntityDialog
-                        title="تعديل بيانات الخادم"
+                        title="عدّل بيانات الخادم"
                         endpoint={`api/users`}
                         fields={servantFields}
                         mode="edit"
@@ -164,15 +164,15 @@ export default function ServantsPage() {
                         }
                       />
                       <ConfirmDeleteDialog
-                        title="حذف خادم"
-                        description={`هل أنت متأكد أنك ترغب في حذف الخادم "${s.name}"؟`}
+                        title="تمسح الخادم؟"
+                        description={`متأكد إنك عايز تمسح الخادم "${s.name}"؟`}
                         onConfirm={async () => {
                           try {
                             await apiFetch(`/api/users/${s._id}`, { method: 'DELETE' })
-                            toast.success('تم حذف الخادم بنجاح')
+                            toast.success('الخادم اتمسح')
                             fetchServants()
                           } catch {
-                            toast.error('حدث خطأ أثناء حذف الخادم')
+                            toast.error('حصلت مشكلة وإحنا بنمسح الخادم')
                           }
                         }}
                       />
@@ -188,9 +188,9 @@ export default function ServantsPage() {
       {/* Mobile Cards */}
       <div className="lg:hidden space-y-3">
         {loading ? (
-          <p className="text-center text-muted-foreground animate-pulse py-12">جاري التحميل...</p>
+          <p className="text-center text-muted-foreground animate-pulse py-12">بنحمّل...</p>
         ) : filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">لا يوجد نتائج</p>
+          <p className="text-center text-muted-foreground py-12">مفيش نتايج</p>
         ) : (
           filtered.map((s) => (
             <Card key={s._id} className="p-4 space-y-3">
@@ -205,7 +205,7 @@ export default function ServantsPage() {
               </div>
               <div className="flex gap-2 pt-1 border-t">
                 <EntityDialog
-                  title="تعديل بيانات الخادم"
+                  title="عدّل بيانات الخادم"
                   endpoint={`api/users`}
                   fields={servantFields}
                   mode="edit"
@@ -213,20 +213,20 @@ export default function ServantsPage() {
                   onSuccess={fetchServants}
                   trigger={
                     <Button variant="outline" size="sm" className="gap-1">
-                      <Pencil className="w-3.5 h-3.5" /> تعديل
+                      <Pencil className="w-3.5 h-3.5" /> عدّل
                     </Button>
                   }
                 />
                 <ConfirmDeleteDialog
-                  title="حذف خادم"
-                  description={`هل أنت متأكد أنك ترغب في حذف الخادم "${s.name}"؟`}
+                  title="تمسح الخادم؟"
+                  description={`متأكد إنك عايز تمسح الخادم "${s.name}"؟`}
                   onConfirm={async () => {
                     try {
                       await apiFetch(`/api/users/${s._id}`, { method: 'DELETE' })
-                      toast.success('تم حذف الخادم بنجاح')
+                      toast.success('الخادم اتمسح')
                       fetchServants()
                     } catch {
-                      toast.error('حدث خطأ أثناء حذف الخادم')
+                      toast.error('حصلت مشكلة وإحنا بنمسح الخادم')
                     }
                   }}
                 />

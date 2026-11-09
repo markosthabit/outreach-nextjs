@@ -13,13 +13,13 @@ function unauthorized(message: string) {
 
 export async function POST(req: NextRequest) {
   const refreshToken = req.cookies.get('refresh_token')?.value
-  if (!refreshToken) return unauthorized('No refresh token')
+  if (!refreshToken) return unauthorized('لازم تسجل دخول الأول')
 
   let payload
   try {
     payload = await verifyRefreshToken(refreshToken)
   } catch {
-    return unauthorized('Invalid or expired refresh token')
+    return unauthorized('الجلسة خلصت، سجل دخول تاني')
   }
 
   try {
@@ -27,19 +27,19 @@ export async function POST(req: NextRequest) {
 
     // The token must match the hash stored at login (revoked on logout / new login)
     const user = await User.findById(payload.sub).select('+refreshTokenHash')
-    if (!user || !user.refreshTokenHash) return unauthorized('Unauthorized')
+    if (!user || !user.refreshTokenHash) return unauthorized('لازم تسجل دخول الأول')
 
     const isValid = await bcrypt.compare(refreshToken, user.refreshTokenHash)
-    if (!isValid) return unauthorized('Unauthorized')
+    if (!isValid) return unauthorized('لازم تسجل دخول الأول')
 
     // Role is re-read from the DB, so role changes apply on the next refresh
     const newAccessToken = await signAccessToken({ sub: user._id.toString(), role: user.role })
 
-    const response = NextResponse.json({ message: 'Token refreshed' })
+    const response = NextResponse.json({ message: 'الجلسة اتجددت' })
     setAccessCookie(response, newAccessToken)
     return response
   } catch (error) {
     console.error('[REFRESH]', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
   }
 }
