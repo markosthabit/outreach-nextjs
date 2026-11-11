@@ -49,9 +49,12 @@ const fields: { key: keyof ServanteeFormData; label: string }[] = [
 export function EditServanteeDialog({
   servantee,
   onUpdated,
+  compact = false,
 }: {
   servantee: any
   onUpdated: () => void
+  /** Subdued icon trigger, for dense table rows. */
+  compact?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -113,7 +116,13 @@ export function EditServanteeDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon">
+        <Button
+          variant={compact ? 'ghost' : 'outline'}
+          size={compact ? 'icon-sm' : 'icon'}
+          className={compact ? 'text-muted-foreground hover:text-foreground' : undefined}
+          title="عدّل"
+          aria-label="عدّل بيانات المخدوم"
+        >
           <Pencil className="w-4 h-4" />
         </Button>
       </DialogTrigger>

@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, StickyNote } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { ConfirmDeleteDialog } from './delete-dialog';
 
@@ -20,6 +20,8 @@ interface Note {
 interface NotesButtonProps {
   entityId: string;
   entityType: 'servantee' | 'retreat'; // singular — used for body key
+  /** Icon-only trigger, for dense table rows. */
+  compact?: boolean;
 }
 
 // Maps entityType to its API path segment (plural) and body key (singular)
@@ -28,7 +30,7 @@ const ENTITY_MAP = {
   retreat:   { path: 'retreats',   bodyKey: 'retreatId'   },
 } as const
 
-export default function NotesButton({ entityId, entityType }: NotesButtonProps) {
+export default function NotesButton({ entityId, entityType, compact = false }: NotesButtonProps) {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
@@ -99,9 +101,22 @@ export default function NotesButton({ entityId, entityType }: NotesButtonProps) 
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        ملاحظات
-      </Button>
+      {compact ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setOpen(true)}
+          className="text-muted-foreground hover:text-foreground"
+          title="ملاحظات"
+          aria-label="ملاحظات"
+        >
+          <StickyNote className="h-4 w-4" />
+        </Button>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+          ملاحظات
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg" dir="rtl">

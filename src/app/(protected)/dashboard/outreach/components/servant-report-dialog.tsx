@@ -103,7 +103,7 @@ export function ServantReportDialog({
   const filterButtons = [
     { key: 'all' as const, label: 'الكل', count: servantData.assignedCount, active: '' },
     { key: 'notCalled' as const, label: 'لسه', count: servantData.notCalledCount, active: 'bg-rose-600 hover:bg-rose-700 text-white' },
-    { key: 'called' as const, label: 'اتكلموا', count: servantData.calledCount, active: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+    { key: 'called' as const, label: 'تم إفتقادهم', count: servantData.calledCount, active: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
   ]
 
   return (
@@ -128,7 +128,7 @@ export function ServantReportDialog({
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 px-2.5 py-1 font-semibold gap-1">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  اتكلموا: {servantData.calledCount}
+                  تم إفتقادهم: {servantData.calledCount}
                 </Badge>
                 <Badge variant="outline" className="bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 px-2.5 py-1 font-semibold gap-1">
                   <XCircle className="h-3.5 w-3.5" />
@@ -198,7 +198,7 @@ export function ServantReportDialog({
                             {isCalled ? (
                               <Badge className="bg-emerald-600 text-white gap-1 text-[11px]">
                                 <CheckCircle2 className="h-3 w-3" />
-                                اتكلم
+                                تم إفتقاده
                               </Badge>
                             ) : (
                               <Badge className="bg-rose-600 text-white gap-1 text-[11px]">
@@ -232,7 +232,7 @@ export function ServantReportDialog({
                           {isCalled && assignment.calledAt && (
                             <div className="pt-1 flex items-center gap-1.5 text-xs text-emerald-800 dark:text-emerald-300 font-medium flex-wrap">
                               <Calendar className="h-3.5 w-3.5 shrink-0" />
-                              <span>اتكلم يوم: {formatDateTime(assignment.calledAt, true)}</span>
+                              <span>تم إفتقاده يوم: {formatDateTime(assignment.calledAt, true)}</span>
                               {assignment.calledBy?.name && (
                                 <span className="text-muted-foreground">(كلمه: {assignment.calledBy.name})</span>
                               )}

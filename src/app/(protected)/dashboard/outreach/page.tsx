@@ -34,12 +34,15 @@ import {
   Settings2,
   AlertCircle,
   Loader2,
+  Pencil,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { CycleDialog } from './components/cycle-dialog'
 import { CreateRoundDialog } from './components/create-round-dialog'
+import { EditCycleDialog } from './components/edit-cycle-dialog'
+import { CycleServanteesDialog } from './components/cycle-servantees-dialog'
 import { ServantReportDialog } from './components/servant-report-dialog'
 import { AssignServanteesSection } from './components/assign-servantees-section'
 import { ServantCallingView } from './components/servant-calling-view'
@@ -73,6 +76,13 @@ export default function OutreachPage() {
   const [cycleDialogOpen, setCycleDialogOpen] = useState(false)
   const [cycleDialogMode, setCycleDialogMode] = useState<'start' | 'end'>('start')
   const [createRoundOpen, setCreateRoundOpen] = useState(false)
+  const [editingRound, setEditingRound] = useState<any | null>(null)
+  const [editRoundOpen, setEditRoundOpen] = useState(false)
+  // Kept after closing so the dialogs don't blank out during their exit animation
+  const [editingCycle, setEditingCycle] = useState<any | null>(null)
+  const [editCycleOpen, setEditCycleOpen] = useState(false)
+  const [viewingCycle, setViewingCycle] = useState<any | null>(null)
+  const [viewCycleOpen, setViewCycleOpen] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -178,7 +188,7 @@ export default function OutreachPage() {
         body: JSON.stringify({ isCalled: newState }),
       })
       setReportData((prev: any) => patchReport(prev, assignmentId, res.assignment))
-      toast.success(newState ? 'اتسجل إن المخدوم اتكلم' : 'شيلنا علامة الاتصال')
+      toast.success(newState ? 'اتسجل إن المخدوم تم إفتقاده' : 'شيلنا علامة الاتصال')
       fetchData() // refresh round stats in the background
     } catch (err: any) {
       toast.error(err?.message || 'معرفناش نحدّث الحالة')
@@ -229,8 +239,8 @@ export default function OutreachPage() {
         'اسم الخادم': s.servant?.name || '',
         'البريد الإلكتروني': s.servant?.email || '',
         'عدد المكلفين': s.assignedCount,
-        'اتكلموا': s.calledCount,
-        'لسه متكلموش': s.notCalledCount,
+        'تم إفتقادهم': s.calledCount,
+        'لم يتم إفتقادهم': s.notCalledCount,
         'نسبة الإنجاز': `${s.completionPercentage}%`,
       }))
 
@@ -250,7 +260,7 @@ export default function OutreachPage() {
           'رقم الهاتف': a.servanteeId?.phone || '',
           'الكنيسة': a.servanteeId?.church || '',
           'التعليم': a.servanteeId?.education || '',
-          'حالة الافتقاد': a.isCalled ? 'اتكلم' : 'لسه متكلمش',
+          'حالة الافتقاد': a.isCalled ? 'تم إفتقاده' : 'لم يتم إفتقاده',
           'تاريخ الاتصال': a.calledAt ? new Date(a.calledAt).toLocaleString('ar-EG') : '-',
           'المتصل': a.calledBy?.name || '-',
           'ملاحظات': a.notes || '',
@@ -260,7 +270,7 @@ export default function OutreachPage() {
       const wb = XLSX.utils.book_new()
       wb.Workbook = { Views: [{ RTL: true }] }
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(servantsSummaryData), 'ملخص الخدام')
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(uncalledData), 'لسه متكلموش')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(uncalledData), 'لم يتم إفتقادهم')
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allData), 'كل التكليفات')
 
       // Strip characters that are invalid in file names
@@ -450,13 +460,13 @@ export default function OutreachPage() {
                   <div className={cn('grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4', loadingReport && 'opacity-60')}>
                     <MetricCard label="عدد المكلفين" value={reportData.summary.totalAssigned} hint="في الجولة دي" />
                     <MetricCard
-                      label="اتكلموا"
+                      label="تم إفتقادهم"
                       value={reportData.summary.totalCalled}
                       hint="مكالمات متسجلة"
                       tone="emerald"
                     />
                     <MetricCard
-                      label="لسه متكلموش"
+                      label="لم يتم إفتقادهم"
                       value={reportData.summary.totalNotCalled}
                       hint="فاضل نفتقدهم"
                       tone="rose"
@@ -631,6 +641,20 @@ export default function OutreachPage() {
                             <RoundStatusBadge status={r.status} />
                           </TableCell>
                           <TableCell className="text-right">
+                            <div className="flex items-center gap-1.5 justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-8 gap-1"
+                              onClick={() => {
+                                setEditingRound(r)
+                                setEditRoundOpen(true)
+                              }}
+                              aria-label={`عدّل ${r.name}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">عدّل</span>
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
@@ -646,6 +670,7 @@ export default function OutreachPage() {
                                 'رجّعها'
                               )}
                             </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -658,7 +683,9 @@ export default function OutreachPage() {
             <Card className="border shadow-xs gap-0 py-0 overflow-hidden">
               <CardHeader className="p-4 sm:p-6 space-y-1">
                 <CardTitle className="text-base sm:text-lg">سجل دورات الافتقاد</CardTitle>
-                <CardDescription>كل الدورات اللي فاتت واللي شغالة.</CardDescription>
+                <CardDescription>
+                  كل الدورات اللي فاتت واللي شغالة. افتح أي دورة عشان تشوف مين تم إفتقاده ومين لسه.
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <Table className="w-full text-right" dir="rtl">
@@ -668,12 +695,13 @@ export default function OutreachPage() {
                       <TableHead className="text-right">البدء</TableHead>
                       <TableHead className="text-right">الانتهاء</TableHead>
                       <TableHead className="text-right hidden sm:table-cell">الحالة</TableHead>
+                      <TableHead className="text-right w-px" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {cycles.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                           لسه مفيش دورات متسجلة.
                         </TableCell>
                       </TableRow>
@@ -695,6 +723,36 @@ export default function OutreachPage() {
                             ) : (
                               <Badge variant="outline" className="text-xs">خلصت</Badge>
                             )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center gap-1.5 justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-8 gap-1"
+                                onClick={() => {
+                                  setViewingCycle(c)
+                                  setViewCycleOpen(true)
+                                }}
+                                aria-label={`مخدومين ${c.name}`}
+                              >
+                                <Users className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">المخدومين</span>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-8 gap-1"
+                                onClick={() => {
+                                  setEditingCycle(c)
+                                  setEditCycleOpen(true)
+                                }}
+                                aria-label={`عدّل ${c.name}`}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">عدّل</span>
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -730,6 +788,30 @@ export default function OutreachPage() {
         activeCycleId={activeCycle?._id || null}
         onSuccess={fetchData}
       />
+
+      <CreateRoundDialog
+        open={editRoundOpen && !!editingRound}
+        onOpenChange={setEditRoundOpen}
+        activeCycleId={activeCycle?._id || null}
+        round={editingRound}
+        onSuccess={fetchData}
+      />
+
+      {isAdmin && (
+        <>
+          <EditCycleDialog
+            open={editCycleOpen && !!editingCycle}
+            onOpenChange={setEditCycleOpen}
+            cycle={editingCycle}
+            onSuccess={fetchData}
+          />
+          <CycleServanteesDialog
+            open={viewCycleOpen && !!viewingCycle}
+            onOpenChange={setViewCycleOpen}
+            cycle={viewingCycle}
+          />
+        </>
+      )}
 
       {isAdmin && (
         <ServantReportDialog

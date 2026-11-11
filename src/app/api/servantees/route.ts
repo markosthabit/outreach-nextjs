@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { Servantee } from '@/models/servantee.model'
 import { Retreat } from '@/models/retreat.model'
+import { OutreachAssignment } from '@/models/outreach-assignment.model'
+import {
+  OUTREACH_SUMMARY_POPULATE,
+  getCurrentOutreachCycle,
+  toOutreachSummary,
+} from '@/lib/outreach-summary'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { readJson } from '@/lib/api-utils'
 import { parseServanteeInput } from '@/lib/servantee-input'
@@ -13,13 +19,25 @@ export async function GET(req: NextRequest) {
     const authUser = await getAuthUser(req)
     if (!authUser) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
 
-    const [servantees, allRetreats] = await Promise.all([
+    const [servantees, allRetreats, outreachCycle] = await Promise.all([
       Servantee.find().populate('createdBy', 'name email').populate('updatedBy', 'name email').lean(),
       Retreat.find()
         .sort({ startDate: -1, createdAt: -1 })
         .select('name location startDate endDate attendees')
         .lean(),
+      getCurrentOutreachCycle(),
     ])
+
+    // Outreach status of each servantee in the current cycle (one assignment per cycle)
+    const outreachByServantee = new Map<string, ReturnType<typeof toOutreachSummary>>()
+    if (outreachCycle) {
+      const assignments = await OutreachAssignment.find({ cycleId: outreachCycle._id })
+        .populate(OUTREACH_SUMMARY_POPULATE)
+        .lean()
+      for (const a of assignments as any[]) {
+        outreachByServantee.set(a.servanteeId.toString(), toOutreachSummary(a))
+      }
+    }
 
     // Index retreats by attendee once (was O(servantees × retreats × attendees))
     const retreatsByServantee = new Map<string, any[]>()
@@ -35,9 +53,10 @@ export async function GET(req: NextRequest) {
     const servanteesWithRetreats = servantees.map((s: any) => ({
       ...s,
       retreats: retreatsByServantee.get(s._id.toString()) || [],
+      outreach: outreachByServantee.get(s._id.toString()) || null,
     }))
 
-    return NextResponse.json({ servantees: servanteesWithRetreats })
+    return NextResponse.json({ servantees: servanteesWithRetreats, outreachCycle })
   } catch (error) {
     console.error('[GET /servantees]', error)
     return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })

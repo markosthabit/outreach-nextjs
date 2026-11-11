@@ -134,7 +134,7 @@ export function ServantCallingView({
   const filterButtons = [
     { key: 'all' as const, label: 'الكل', count: total, active: '' },
     { key: 'notCalled' as const, label: 'لسه', count: notCalledCount, active: 'bg-rose-600 hover:bg-rose-700 text-white' },
-    { key: 'called' as const, label: 'اتكلموا', count: calledCount, active: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+    { key: 'called' as const, label: 'تم إفتقادهم', count: calledCount, active: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
   ]
 
   return (
@@ -167,7 +167,7 @@ export function ServantCallingView({
             {/* Progress summary stats */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3 md:flex md:items-center">
               {[
-                { value: calledCount, label: 'اتكلموا', cls: 'text-emerald-600 dark:text-emerald-400' },
+                { value: calledCount, label: 'تم إفتقادهم', cls: 'text-emerald-600 dark:text-emerald-400' },
                 { value: notCalledCount, label: 'فاضلين', cls: 'text-rose-600 dark:text-rose-400' },
                 { value: `${completionRate}%`, label: 'الإنجاز', cls: 'text-primary' },
               ].map((stat) => (
@@ -285,7 +285,7 @@ export function ServantCallingView({
                     {isCalled ? (
                       <Badge className="bg-emerald-600 text-white gap-1 shrink-0 text-xs py-0.5">
                         <CheckCircle2 className="h-3 w-3" />
-                        اتكلم
+                        تم إفتقاده
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-rose-600 border-rose-400/40 bg-rose-50 dark:bg-rose-950/30 gap-1 shrink-0 text-xs py-0.5">
@@ -317,7 +317,7 @@ export function ServantCallingView({
                     {isCalled && assignment.calledAt && (
                       <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-medium pt-1">
                         <Calendar className="h-3.5 w-3.5 shrink-0" />
-                        <span>اتكلم: {formatDateTime(assignment.calledAt)}</span>
+                        <span>تم إفتقاده: {formatDateTime(assignment.calledAt)}</span>
                       </div>
                     )}
                   </div>

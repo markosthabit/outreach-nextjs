@@ -3,7 +3,7 @@ import { connectDB } from '@/lib/db'
 import { OutreachCycle } from '@/models/outreach-cycle.model'
 import { OutreachRound } from '@/models/outreach-round.model'
 import { getAuthUser } from '@/lib/auth-helpers'
-import { isValidObjectId, jsonError } from '@/lib/api-utils'
+import { isValidObjectId, jsonError, parseDate, readJson } from '@/lib/api-utils'
 
 // GET /api/outreach/cycles
 export async function GET(req: NextRequest) {
@@ -61,15 +61,51 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PATCH /api/outreach/cycles - End an active cycle (Admin only)
+// PATCH /api/outreach/cycles (Admin only)
+// - { cycleId, action: 'end' }: end an active cycle
+// - { cycleId, action: 'update', name?, startedAt?, endedAt? }: edit a cycle's details
+//   (endedAt only applies to a finished cycle)
 export async function PATCH(req: NextRequest) {
   try {
     await connectDB()
     const authUser = await getAuthUser(req)
     if (!authUser || authUser.role !== 'Admin') return jsonError('مش مسموحلك تعمل كده', 403)
 
-    const { cycleId, action } = await req.json()
+    const body = await readJson(req)
+    const { cycleId, action } = body ?? {}
     if (!isValidObjectId(cycleId)) return jsonError('معرّف الدورة غلط', 400)
+
+    if (action === 'update') {
+      const { name, startedAt, endedAt } = body
+      const cycle = await OutreachCycle.findById(cycleId)
+      if (!cycle) return jsonError('الدورة مش موجودة', 404)
+
+      if (name !== undefined) {
+        if (typeof name !== 'string' || !name.trim()) return jsonError('اكتب اسم الدورة', 400)
+        if (name.trim().length > 200) return jsonError('اسم الدورة طويل أوي', 400)
+        cycle.name = name.trim()
+      }
+      if (startedAt !== undefined) {
+        const d = parseDate(startedAt)
+        if (!d) return jsonError('تاريخ البداية غلط', 400)
+        cycle.startedAt = d
+      }
+      if (endedAt !== undefined) {
+        if (cycle.status !== 'completed') {
+          return jsonError('الدورة لسه شغالة، إنهيها الأول عشان يبقى ليها تاريخ نهاية', 400)
+        }
+        const d = parseDate(endedAt)
+        if (!d) return jsonError('تاريخ النهاية غلط', 400)
+        cycle.endedAt = d
+      }
+      if (cycle.endedAt && cycle.startedAt > cycle.endedAt) {
+        return jsonError('تاريخ البداية لازم يبقى قبل تاريخ النهاية', 400)
+      }
+
+      await cycle.save()
+      return NextResponse.json({ cycle })
+    }
+
     if (action !== 'end') return jsonError('العملية دي مش مفهومة', 400)
 
     const updated = await OutreachCycle.findByIdAndUpdate(
