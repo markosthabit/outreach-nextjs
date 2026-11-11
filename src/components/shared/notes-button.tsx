@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Pencil, Plus, StickyNote } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { ConfirmDeleteDialog } from './delete-dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface Note {
   _id: string;
@@ -31,6 +33,8 @@ const ENTITY_MAP = {
 } as const
 
 export default function NotesButton({ entityId, entityType, compact = false }: NotesButtonProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin'; // deleting is admin-only (enforced by the API too)
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,8 +84,9 @@ export default function NotesButton({ entityId, entityType, compact = false }: N
     try {
       await apiFetch(`/api/notes/${id}`, { method: 'DELETE' });
       setNotes((prev) => prev.filter((n) => n._id !== id));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Delete note failed', err);
+      toast.error(err?.message || 'معرفناش نمسح الملاحظة');
     }
   }
 
@@ -172,11 +177,13 @@ export default function NotesButton({ entityId, entityType, compact = false }: N
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
-                          <ConfirmDeleteDialog
-                            onConfirm={() => handleDelete(note._id)}
-                            title="تمسح الملاحظة؟"
-                            description="متأكد إنك عايز تمسح الملاحظة دي؟"
-                          />
+                          {isAdmin && (
+                            <ConfirmDeleteDialog
+                              onConfirm={() => handleDelete(note._id)}
+                              title="تمسح الملاحظة؟"
+                              description="متأكد إنك عايز تمسح الملاحظة دي؟"
+                            />
+                          )}
                         </div>
                       </>
                     )}

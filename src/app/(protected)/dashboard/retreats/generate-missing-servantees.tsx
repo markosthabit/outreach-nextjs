@@ -1,13 +1,9 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import jsPDF from "jspdf"
-import autoTable from "jspdf-autotable"
 import { toast } from "sonner"
 import { apiFetch } from "@/lib/api"
 import { useState } from "react"
-import { b64font } from "@/lib/fonts/amiri-font"
-import * as XLSX from "xlsx"
 
 type Props = {
   retreatId: string
@@ -19,8 +15,8 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
   const [loadingExcel, setLoadingExcel] = useState(false)
 
  async function getMissingServantees() {
-  // Fetch all servantees in one call — no pagination needed
-  const res = await apiFetch<{ servantees: any[] }>('/api/servantees')
+  // The report lists everyone who is missing, so it needs the whole (slim) list
+  const res = await apiFetch<{ servantees: any[] }>('/api/servantees?view=basic')
   const allServantees = res.servantees ?? []
 
   // Extract the retreat object correctly
@@ -42,6 +38,12 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
         return
       }
 
+      // PDF library and the ~800 KB Arabic font are only downloaded when exporting
+      const [{ default: jsPDF }, { default: autoTable }, { b64font }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+        import("@/lib/fonts/amiri-font"),
+      ])
       const doc = new jsPDF({ orientation: "p", unit: "pt" })
       doc.addFileToVFS("Amiri-Regular.ttf", b64font)
       doc.addFont("Amiri-Regular.ttf", "Amiri", "normal")
@@ -91,6 +93,7 @@ export default function GenerateMissingServantees({ retreatId, retreatName }: Pr
         return
       }
 
+      const XLSX = await import("xlsx")
       const data = missing.map((s) => ({ الاسم: s.name || "-" }))
       const worksheet = XLSX.utils.json_to_sheet(data)
       const workbook = XLSX.utils.book_new()

@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button'
-import { b64font } from '@/lib/fonts/amiri-font'
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
 
@@ -26,6 +25,8 @@ export function GenerateAttendeesReport({ retreat }: { retreat: any }) {
       applyPlugin(jsPDF)
 
       const doc = new jsPDF({ orientation: "p", unit: "pt" })
+      // The Arabic font is ~800 KB, so it is only downloaded when a PDF is actually exported
+      const { b64font } = await import('@/lib/fonts/amiri-font')
       doc.addFileToVFS("Amiri-Regular.ttf", b64font)
       doc.addFont("Amiri-Regular.ttf", "Amiri", "normal")
       doc.setFont("Amiri")

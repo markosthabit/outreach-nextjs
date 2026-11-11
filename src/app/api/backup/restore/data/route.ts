@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import mongoose from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { DATA_COLLECTIONS, audit, isObjectId, readBackupBody, requireAdmin } from '@/lib/backup'
+import { invalidateServanteeListCache } from '@/lib/servantee-list-cache'
 
 const MAX_ERRORS = 20
 
@@ -97,6 +98,8 @@ export async function POST(req: NextRequest) {
       }
     })
 
+    // The restore writes straight to the collections, bypassing Mongoose timestamps
+    invalidateServanteeListCache()
     await audit(actor, 'restore.data', 'success', { ...source, before, restored })
     return NextResponse.json({ message: 'البيانات رجعت تمام', before, restored })
   } catch (error: any) {

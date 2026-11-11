@@ -24,6 +24,8 @@ interface Person {
   _id: string
   name: string
   email?: string
+  /** The account was deleted; `_id` is empty and `name` is the saved snapshot. */
+  deleted?: boolean
 }
 
 export interface OutreachRecord {
@@ -194,12 +196,13 @@ function OutreachEditForm({
   // Keep people who are on the record selectable even before the users list loads
   const userOptions = [...(users ?? [])]
   for (const p of [record.servantId, record.calledBy]) {
-    if (p && !userOptions.some((u) => u._id === p._id)) userOptions.push(p)
+    if (p && p._id && !userOptions.some((u) => u._id === p._id)) userOptions.push(p)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (isAdmin && !servantId) return toast.error('اختار الخادم المكلف')
+    // A record whose servant account was deleted can be edited without reassigning it
+    if (isAdmin && !servantId && !record.servantId?.deleted) return toast.error('اختار الخادم المكلف')
     if (isCalled && !calledAt) return toast.error('حدد تاريخ الافتقاد')
     if (isCalled && new Date(calledAt).getTime() > Date.now()) {
       return toast.error('تاريخ الافتقاد مينفعش يبقى في المستقبل')
@@ -208,7 +211,7 @@ function OutreachEditForm({
     const body: Record<string, unknown> = { isCalled, notes }
     if (isCalled) body.calledAt = new Date(calledAt).toISOString()
     if (isAdmin) {
-      body.servantId = servantId
+      if (servantId) body.servantId = servantId
       if (isCalled && calledBy) body.calledBy = calledBy
     }
 
@@ -241,7 +244,11 @@ function OutreachEditForm({
           <Label htmlFor={fieldId('servant')} className="text-xs">الخادم المكلف</Label>
           <Select value={servantId} onValueChange={setServantId} disabled={!users}>
             <SelectTrigger id={fieldId('servant')} className="w-full bg-background" dir="rtl">
-              <SelectValue placeholder={users ? 'اختار الخادم...' : 'بنحمّل الخدام...'} />
+              <SelectValue
+                placeholder={
+                  !users ? 'بنحمّل الخدام...' : record.servantId?.deleted ? record.servantId.name : 'اختار الخادم...'
+                }
+              />
             </SelectTrigger>
             <SelectContent dir="rtl">
               {userOptions.map((u) => (

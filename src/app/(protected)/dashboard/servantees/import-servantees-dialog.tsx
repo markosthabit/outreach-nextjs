@@ -13,7 +13,6 @@ import {
 import { FileSpreadsheet, Upload, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api'
-import * as xlsx from 'xlsx'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 interface ImportServanteesDialogProps {
@@ -34,6 +33,8 @@ export function ImportServanteesDialog({ onImported }: ImportServanteesDialogPro
     setImportResult(null)
     
     try {
+      // The Excel library is only downloaded when a file is actually imported
+      const xlsx = await import('xlsx')
       const data = await file.arrayBuffer()
       const workbook = xlsx.read(data, { type: 'array' })
       const firstSheetName = workbook.SheetNames[0]

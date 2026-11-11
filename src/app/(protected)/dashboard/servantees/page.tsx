@@ -27,16 +27,9 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { Users, Search, ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, UserMinus, Gift, Church, GraduationCap, RotateCcw, X, SlidersHorizontal, PhoneCall, PhoneOff, CheckCircle2, Loader2 } from 'lucide-react'
 import { IconBrandWhatsapp } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
-import { filterServantees } from '@/lib/arabic-search'
 import { AlphabetFilterBar } from '@/components/shared/alphabet-filter-bar'
 import { FilterCombobox } from '@/components/shared/filter-combobox'
-import {
-  normalizeChurchName,
-  normalizeCollegeName,
-  getInitialLetter,
-  buildClusteredOptions,
-  computeLetterCounts,
-} from '@/lib/servantee-filters'
+import type { ClusteredFilterOption } from '@/lib/servantee-filters'
 
 interface Servantee {
   _id: string
@@ -50,7 +43,9 @@ interface Servantee {
   year: string
   isActive: boolean
   notes: string[]
-  retreats?: { _id: string; startDate: string; endDate: string }[]
+  /** No retreat in the last 3 months (computed on the server). */
+  isInactive?: boolean
+  hasBirthdayThisMonth?: boolean
   /** Outreach status in the current cycle; null when not assigned to any servant. */
   outreach?: OutreachSummary | null
 }
@@ -66,6 +61,25 @@ interface OutreachSummary {
 }
 
 type OutreachFilter = 'contacted' | 'notContacted' | null
+
+/** One page of servantees plus the counters / filter options for the whole list. */
+interface ServanteesPageResponse {
+  servantees: Servantee[]
+  total: number
+  page: number
+  totalPages: number
+  counts: { total: number; inactive: number; birthdays: number; contacted: number }
+  facets: {
+    letterCounts: Record<string, number>
+    churchOptions: ClusteredFilterOption[]
+    collegeOptions: ClusteredFilterOption[]
+  }
+  outreachCycle: { _id: string; name: string; status: string } | null
+}
+
+const NO_COUNTS = { total: 0, inactive: 0, birthdays: 0, contacted: 0 }
+const NO_OPTIONS: ClusteredFilterOption[] = []
+const NO_LETTERS: Record<string, number> = {}
 
 const PAGE_SIZE = 10
 
@@ -178,10 +192,12 @@ export default function ServanteesPage() {
   const isAdmin = user?.role === 'Admin'
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const [allServantees, setAllServantees] = useState<Servantee[]>([])
+  const [list, setList] = useState<ServanteesPageResponse | null>(null)
+  const [fetching, setFetching] = useState(false)
+  const requestRef = useRef(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [page, setPage] = useState(1)
+  const [pageState, setPageState] = useState({ key: '', page: 1 })
   const [searchTerm, setSearchTerm] = useState('')
   const [showOnlyInactive, setShowOnlyInactive] = useState(false)
   const [showBirthdays, setShowBirthdays] = useState(false)
@@ -190,7 +206,6 @@ export default function ServanteesPage() {
   const [selectedCollege, setSelectedCollege] = useState<string | null>(null)
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false)
   const [outreachFilter, setOutreachFilter] = useState<OutreachFilter>(null)
-  const [outreachCycle, setOutreachCycle] = useState<{ _id: string; name: string; status: string } | null>(null)
   const [togglingOutreachId, setTogglingOutreachId] = useState<string | null>(null)
 
   const debouncedSearch = useDebounce(searchTerm, 400)
@@ -201,142 +216,76 @@ export default function ServanteesPage() {
     }
   }, [])
 
-  // ── Helper ─────────────────────────────────────────────────
-  const isInactive = useCallback((s: Servantee) => {
-    if (!s.retreats || s.retreats.length === 0) return true
-    
-    const latestRetreat = s.retreats.reduce((latest, current) => {
-      return new Date(current.startDate) > new Date(latest.startDate) ? current : latest
-    }, s.retreats[0])
+  // ── Server-side filtering & pagination ────────────────────
+  // Every filter goes to the server and only one page of rows comes back.
+  const filtersKey = useMemo(() => {
+    const params = new URLSearchParams()
+    const q = debouncedSearch.trim()
+    if (q) params.set('q', q)
+    if (showOnlyInactive) params.set('view', 'inactive')
+    else if (showBirthdays) params.set('view', 'birthdays')
+    if (outreachFilter) params.set('outreach', outreachFilter)
+    if (selectedLetter) params.set('letter', selectedLetter)
+    if (selectedChurch) params.set('church', selectedChurch)
+    if (selectedCollege) params.set('college', selectedCollege)
+    return params.toString()
+  }, [
+    debouncedSearch,
+    showOnlyInactive,
+    showBirthdays,
+    outreachFilter,
+    selectedLetter,
+    selectedChurch,
+    selectedCollege,
+  ])
 
-    const threeMonthsAgo = new Date()
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+  // The page number only counts for the filters it was chosen under, so changing
+  // any filter lands on page 1 without a second request.
+  const page = pageState.key === filtersKey ? pageState.page : 1
+  const setPage = (update: (p: number) => number) =>
+    setPageState((prev) => ({ key: filtersKey, page: update(prev.key === filtersKey ? prev.page : 1) }))
 
-    return new Date(latestRetreat.startDate) < threeMonthsAgo
-  }, [])
-
-  const hasBirthdayThisMonth = useCallback((s: Servantee) => {
-    if (!s.birthDate) return false
-    return new Date(s.birthDate).getMonth() === new Date().getMonth()
-  }, [])
-
-  const inactiveCount = useMemo(() => allServantees.filter(isInactive).length, [allServantees, isInactive])
-  const birthdayCount = useMemo(() => allServantees.filter(hasBirthdayThisMonth).length, [allServantees, hasBirthdayThisMonth])
-  const contactedCount = useMemo(() => allServantees.filter((s) => s.outreach?.isCalled).length, [allServantees])
-
-  // ── Fetch all servantees once ──────────────────────────────
   const fetchServantees = useCallback(async () => {
+    const requestId = ++requestRef.current
+    setFetching(true)
     try {
-      const res = await apiFetch<{ servantees: Servantee[]; outreachCycle?: typeof outreachCycle }>('/api/servantees')
-      setAllServantees(res.servantees ?? [])
-      setOutreachCycle(res.outreachCycle ?? null)
+      const params = new URLSearchParams(filtersKey)
+      params.set('page', String(page))
+      params.set('limit', String(PAGE_SIZE))
+      params.set('tz', String(new Date().getTimezoneOffset()))
+      const res = await apiFetch<ServanteesPageResponse>(`/api/servantees?${params}`)
+      // A newer request (the user kept typing / paging) supersedes this one
+      if (requestId !== requestRef.current) return
+      setList(res)
+      setError(null)
+      // The server clamps the page, e.g. after the last row of the last page is deleted
+      if (res.page !== page) setPageState({ key: filtersKey, page: res.page })
     } catch (err: any) {
+      if (requestId !== requestRef.current) return
       console.error(err)
-      setError(err.message || 'حصلت مشكلة وإحنا بنحمّل البيانات')
+      const message = err?.message || 'حصلت مشكلة وإحنا بنحمّل البيانات'
+      setError(message)
+      toast.error(message)
     } finally {
-      setLoading(false)
+      if (requestId === requestRef.current) {
+        setLoading(false)
+        setFetching(false)
+      }
     }
-  }, [])
+  }, [filtersKey, page])
 
   useEffect(() => {
     fetchServantees()
   }, [fetchServantees])
 
-  // ── Smart Dynamic Clustering for Unstandardized Fields ──────
-  const letterCounts = useMemo(() => computeLetterCounts(allServantees), [allServantees])
-
-  const churchOptions = useMemo(
-    () => buildClusteredOptions(allServantees, (s) => s.church, normalizeChurchName),
-    [allServantees]
-  )
-
-  const collegeOptions = useMemo(
-    () => buildClusteredOptions(allServantees, (s) => s.education, normalizeCollegeName),
-    [allServantees]
-  )
-
-  // ── Client-side multi-layer search & filter ────────────────
-  const filtered = useMemo(() => {
-    let result = allServantees
-
-    if (showOnlyInactive) {
-      result = result.filter(isInactive)
-    }
-
-    if (showBirthdays) {
-      result = result.filter(hasBirthdayThisMonth)
-    }
-
-    // Outreach status in the current cycle (not assigned counts as not contacted)
-    if (outreachFilter) {
-      const wantContacted = outreachFilter === 'contacted'
-      result = result.filter((s) => !!s.outreach?.isCalled === wantContacted)
-    }
-
-    // 1. Initial Letter filter
-    if (selectedLetter) {
-      result = result.filter((s) => getInitialLetter(s.name) === selectedLetter)
-    }
-
-    // 2. Church cluster filter
-    if (selectedChurch) {
-      const opt = churchOptions.find((o) => o.id === selectedChurch)
-      if (opt) {
-        const rawSet = new Set(opt.rawValues)
-        result = result.filter(
-          (s) =>
-            (s.church && rawSet.has(s.church)) ||
-            normalizeChurchName(s.church) === selectedChurch
-        )
-      }
-    }
-
-    // 3. College/Education cluster filter
-    if (selectedCollege) {
-      const opt = collegeOptions.find((o) => o.id === selectedCollege)
-      if (opt) {
-        const rawSet = new Set(opt.rawValues)
-        result = result.filter(
-          (s) =>
-            (s.education && rawSet.has(s.education)) ||
-            normalizeCollegeName(s.education) === selectedCollege
-        )
-      }
-    }
-
-    // 4. Free text search (Name, Phone, Church, Diocese)
-    if (debouncedSearch.trim()) {
-      result = filterServantees(debouncedSearch, result)
-    }
-
-    return result
-  }, [
-    allServantees,
-    debouncedSearch,
-    showOnlyInactive,
-    showBirthdays,
-    outreachFilter,
-    selectedLetter,
-    selectedChurch,
-    selectedCollege,
-    churchOptions,
-    collegeOptions,
-    isInactive,
-    hasBirthdayThisMonth,
-  ])
-
-  // ── Reset page on filter change ────────────────────────────
-  useEffect(() => {
-    setPage(1)
-  }, [
-    debouncedSearch,
-    showOnlyInactive,
-    showBirthdays,
-    outreachFilter,
-    selectedLetter,
-    selectedChurch,
-    selectedCollege,
-  ])
+  const servantees = list?.servantees ?? []
+  const total = list?.total ?? 0
+  const totalPages = list?.totalPages ?? 1
+  const counts = list?.counts ?? NO_COUNTS
+  const letterCounts = list?.facets.letterCounts ?? NO_LETTERS
+  const churchOptions = list?.facets.churchOptions ?? NO_OPTIONS
+  const collegeOptions = list?.facets.collegeOptions ?? NO_OPTIONS
+  const outreachCycle = list?.outreachCycle ?? null
 
   // ── Clear all active filters ───────────────────────────────
   const resetAllFilters = () => {
@@ -369,16 +318,12 @@ export default function ServanteesPage() {
     [collegeOptions, selectedCollege]
   )
 
-  // ── Client-side pagination ─────────────────────────────────
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-
   // ── Handlers ───────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     try {
       await apiFetch(`/api/servantees/${id}`, { method: 'DELETE' })
       toast.success('المخدوم اتمسح')
-      setAllServantees((prev) => prev.filter((s) => s._id !== id))
+      fetchServantees()
     } catch (err: any) {
       toast.error('حصلت مشكلة وإحنا بنمسح')
     }
@@ -396,7 +341,15 @@ export default function ServanteesPage() {
         method: 'POST',
         body: JSON.stringify({ isCalled: next }),
       })
-      setAllServantees((prev) => prev.map((x) => (x._id === s._id ? { ...x, outreach: res.outreach } : x)))
+      // Update the row right away, then refresh so the counters (and any outreach filter) follow
+      setList(
+        (prev) =>
+          prev && {
+            ...prev,
+            servantees: prev.servantees.map((x) => (x._id === s._id ? { ...x, outreach: res.outreach } : x)),
+          }
+      )
+      fetchServantees()
       toast.success(next ? 'اتسجل إن المخدوم تم إفتقاده' : 'شيلنا علامة الاتصال')
     } catch (err: any) {
       toast.error(err?.message || 'معرفناش نحدّث حالة الافتقاد')
@@ -412,7 +365,7 @@ export default function ServanteesPage() {
     </div>
   )
 
-  if (error) return (
+  if (error && !list) return (
     <div className="flex items-center justify-center h-64">
       <p className="text-red-500">{error}</p>
     </div>
@@ -427,13 +380,12 @@ export default function ServanteesPage() {
           <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold">المخدومين</h1>
           <Badge variant="secondary" className="text-xs">
-            {filtered.length}
+            {total}
           </Badge>
         </div>
         <div className="flex gap-2 *:flex-1 sm:*:flex-none">
           {isAdmin && <ImportServanteesDialog onImported={fetchServantees} />}
           <AddServanteeDialog
-            existingServantees={allServantees}
             selectExistingLabel="وريني المخدوم"
             onAdded={fetchServantees}
             onSelectExisting={(existingServantee) => {
@@ -493,7 +445,7 @@ export default function ServanteesPage() {
               >
                 <span className="whitespace-nowrap">الكل</span>
                 <span className="text-[10px] px-1.5 rounded-full bg-foreground/5 text-muted-foreground font-semibold">
-                  {allServantees.length}
+                  {counts.total}
                 </span>
               </button>
               <button
@@ -515,7 +467,7 @@ export default function ServanteesPage() {
                   المنقطعين
                 </span>
                 <span className="text-[10px] px-1.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
-                  {inactiveCount}
+                  {counts.inactive}
                 </span>
               </button>
               <button
@@ -537,7 +489,7 @@ export default function ServanteesPage() {
                   أعياد الميلاد
                 </span>
                 <span className="text-[10px] px-1.5 rounded-full bg-pink-500/15 text-pink-700 dark:text-pink-300 font-semibold">
-                  {birthdayCount}
+                  {counts.birthdays}
                 </span>
               </button>
             </div>
@@ -565,7 +517,7 @@ export default function ServanteesPage() {
                   تم إفتقادهم
                 </span>
                 <span className="text-[10px] px-1.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold">
-                  {contactedCount}
+                  {counts.contacted}
                 </span>
               </button>
               <button
@@ -584,7 +536,7 @@ export default function ServanteesPage() {
                   لم يتم إفتقادهم
                 </span>
                 <span className="text-[10px] px-1.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 font-semibold">
-                  {allServantees.length - contactedCount}
+                  {counts.total - counts.contacted}
                 </span>
               </button>
             </div>
@@ -676,7 +628,7 @@ export default function ServanteesPage() {
           selectedLetter={selectedLetter}
           onSelectLetter={setSelectedLetter}
           letterCounts={letterCounts}
-          totalCount={allServantees.length}
+          totalCount={counts.total}
         />
       </div>
 
@@ -686,8 +638,8 @@ export default function ServanteesPage() {
           {/* Result count + reset */}
           <div className="flex items-center justify-between gap-2">
             <div className="text-muted-foreground font-medium">
-              لقينا <span className="text-foreground font-semibold">{filtered.length}</span> من{' '}
-              {allServantees.length}
+              لقينا <span className="text-foreground font-semibold">{total}</span> من{' '}
+              {counts.total}
             </div>
             <Button
               type="button"
@@ -743,7 +695,13 @@ export default function ServanteesPage() {
 
       {/* Table — shown once the content area (not the viewport) is wide enough,
           so it also adapts when the sidebar is open or collapsed */}
-      <Card className="hidden @5xl/main:block gap-0 py-0 shadow-xs overflow-hidden rounded-2xl">
+      <Card
+        className={cn(
+          'hidden @5xl/main:block gap-0 py-0 shadow-xs overflow-hidden rounded-2xl transition-opacity',
+          fetching && 'opacity-60'
+        )}
+        aria-busy={fetching}
+      >
         <Table className="w-full text-right table-fixed">
           <colgroup>
             <col />
@@ -771,7 +729,7 @@ export default function ServanteesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginated.length === 0 ? (
+            {servantees.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
                   <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
@@ -779,7 +737,7 @@ export default function ServanteesPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginated.map((s) => (
+              servantees.map((s) => (
                 <TableRow key={s._id} className="group hover:bg-muted/30">
                   {/* Who: name + status icons, phone underneath */}
                   <TableCell className="py-3 pr-5 pl-3 overflow-hidden">
@@ -787,12 +745,12 @@ export default function ServanteesPage() {
                       <span className="truncate font-semibold text-foreground" title={s.name}>
                         {s.name}
                       </span>
-                      {hasBirthdayThisMonth(s) && (
+                      {s.hasBirthdayThisMonth && (
                         <span title="عيد ميلاده الشهر ده" className="shrink-0 flex items-center">
                           <Gift className="h-3.5 w-3.5 text-pink-500" />
                         </span>
                       )}
-                      {isInactive(s) && (
+                      {s.isInactive && (
                         <span title="مجاش خلوة من 3 شهور" className="shrink-0 flex items-center">
                           <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
                         </span>
@@ -883,22 +841,28 @@ export default function ServanteesPage() {
       </Card>
 
       {/* Cards — one column on phones, two when the content area has room */}
-      <div className="@5xl/main:hidden grid grid-cols-1 @3xl/main:grid-cols-2 gap-3">
-        {paginated.length === 0 ? (
+      <div
+        className={cn(
+          '@5xl/main:hidden grid grid-cols-1 @3xl/main:grid-cols-2 gap-3 transition-opacity',
+          fetching && 'opacity-60'
+        )}
+        aria-busy={fetching}
+      >
+        {servantees.length === 0 ? (
           <p className="col-span-full text-center text-muted-foreground py-12">مفيش مخدومين</p>
         ) : (
-          paginated.map((s) => (
+          servantees.map((s) => (
             <Card key={s._id} className="p-4 gap-0 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 min-w-0">
                     <p className="font-semibold text-base truncate" title={s.name}>{s.name}</p>
-                    {hasBirthdayThisMonth(s) && (
+                    {s.hasBirthdayThisMonth && (
                       <span title="عيد ميلاده الشهر ده" className="shrink-0 flex items-center">
                         <Gift className="h-4 w-4 text-pink-500" />
                       </span>
                     )}
-                    {isInactive(s) && (
+                    {s.isInactive && (
                       <span title="مجاش خلوة من 3 شهور" className="shrink-0 flex items-center">
                         <AlertTriangle className="h-4 w-4 text-amber-500" />
                       </span>

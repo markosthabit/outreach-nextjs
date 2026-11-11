@@ -7,10 +7,22 @@ import { parseRetreatInput } from '@/lib/retreat-input'
 import '@/models/user.model'
 
 // GET /api/retreats
+// ?view=light — for lists: attendees stay as plain ids (no name/phone/church per
+// attendee of every retreat) and notes are left out. Open one retreat via
+// /api/retreats/:id to get its full details.
 export async function GET(req: NextRequest) {
   try {
     await connectDB()
     if (!(await getAuthUser(req))) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
+
+    if (new URL(req.url).searchParams.get('view') === 'light') {
+      const retreats = await Retreat.find()
+        .sort({ startDate: -1, createdAt: -1 })
+        .select('-notes')
+        .populate({ path: 'servants', select: 'name email role', strictPopulate: false })
+        .lean()
+      return NextResponse.json({ retreats })
+    }
 
     const retreats = await Retreat.find()
       .sort({ startDate: -1, createdAt: -1 })

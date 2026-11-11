@@ -23,32 +23,16 @@ export default function DashboardPage() {
     try {
       setLoading(true)
 
-      const [servanteesRes, retreatsRes, usersRes] = await Promise.all([
-        apiFetch<{ servantees: any[] }>('/api/servantees'),
-        apiFetch<{ retreats: any[] }>('/api/retreats'),
-        apiFetch<{ users: any[] }>('/api/users'),
-      ])
-
-      const servantees = servanteesRes.servantees ?? []
-      const retreats = retreatsRes.retreats ?? []
-      const users = usersRes.users ?? []
-
-      const now = new Date()
-      const upcoming = retreats.filter(
-        (r: any) => r.startDate && new Date(r.startDate) > now
-      ).length
-
-      const currentMonth = now.getMonth()
-      const birthdays = servantees.filter(
-        (s: any) => s.birthDate && new Date(s.birthDate).getMonth() === currentMonth
-      ).length
-
+      // Counted on the server — the page no longer downloads every record
+      const res = await apiFetch<typeof stats>(
+        `/api/dashboard/stats?tz=${new Date().getTimezoneOffset()}`
+      )
       setStats({
-        servantees: servantees.length,
-        retreats: retreats.length,
-        upcomingRetreats: upcoming,
-        servants: users.length,
-        birthdaysThisMonth: birthdays,
+        servantees: res.servantees ?? 0,
+        retreats: res.retreats ?? 0,
+        upcomingRetreats: res.upcomingRetreats ?? 0,
+        servants: res.servants ?? 0,
+        birthdaysThisMonth: res.birthdaysThisMonth ?? 0,
       })
     } catch (err) {
       console.error('Dashboard fetch failed:', err)

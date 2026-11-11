@@ -11,8 +11,9 @@ export type NoteDocument = HydratedDocument<INote>;
 const NoteSchema = new Schema<INote>(
   {
     content: { type: String, required: true, trim: true },
-    servanteeId: { type: Types.ObjectId, ref: 'Servantee' },
-    retreatId: { type: Types.ObjectId, ref: 'Retreat' },
+    // Notes are always looked up by the record they belong to
+    servanteeId: { type: Types.ObjectId, ref: 'Servantee', index: true },
+    retreatId: { type: Types.ObjectId, ref: 'Retreat', index: true },
   },
   { collection: 'notes', timestamps: true }
 );

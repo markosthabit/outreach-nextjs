@@ -6,8 +6,13 @@ import { signAccessToken, signRefreshToken } from '@/lib/jwt'
 import { setAccessCookie, setRefreshCookie } from '@/lib/auth-cookies'
 import { readJson } from '@/lib/api-utils'
 import { clientIp, rateLimit, resetRateLimit } from '@/lib/rate-limit'
+import { hashToken } from '@/lib/token-hash'
 
 const MAX_ATTEMPTS = 10
+// X-Forwarded-For is client-controlled unless a trusted proxy overwrites it, so the
+// per-IP limit alone can be dodged by sending a new header value on every request.
+// This second limit counts attempts against the account itself, whatever the IP.
+const MAX_ATTEMPTS_PER_ACCOUNT = 30
 const WINDOW_MS = 15 * 60 * 1000
 
 export async function POST(req: NextRequest) {
@@ -26,7 +31,10 @@ export async function POST(req: NextRequest) {
 
     const normalizedEmail = email.trim().toLowerCase()
     const limiterKey = `login:${clientIp(req)}:${normalizedEmail}`
-    const limit = rateLimit(limiterKey, MAX_ATTEMPTS, WINDOW_MS)
+    const accountKey = `login-account:${normalizedEmail}`
+    const accountLimit = rateLimit(accountKey, MAX_ATTEMPTS_PER_ACCOUNT, WINDOW_MS)
+    const ipLimit = rateLimit(limiterKey, MAX_ATTEMPTS, WINDOW_MS)
+    const limit = accountLimit.allowed ? ipLimit : accountLimit
     if (!limit.allowed) {
       return NextResponse.json(
         { message: 'جربت تدخل كتير، استنى شوية وجرّب تاني' },
@@ -44,14 +52,14 @@ export async function POST(req: NextRequest) {
     }
 
     resetRateLimit(limiterKey)
+    resetRateLimit(accountKey)
 
     const payload = { sub: user._id.toString(), role: user.role }
     const accessToken = await signAccessToken(payload)
     const refreshToken = await signRefreshToken(payload)
 
-    // Store only a hash of the refresh token
-    const refreshTokenHash = await bcrypt.hash(refreshToken, 10)
-    await User.findByIdAndUpdate(user._id, { refreshTokenHash })
+    // Store only a digest of the refresh token (see lib/token-hash.ts for why not bcrypt)
+    await User.findByIdAndUpdate(user._id, { refreshTokenHash: hashToken(refreshToken) })
 
     const response = NextResponse.json({
       user: { id: user._id, name: user.name, email: user.email, role: user.role },

@@ -80,7 +80,7 @@ export function AddServanteeDialog({
   // Load existing servantees if not provided via props
   useEffect(() => {
     if (open && (!existingServantees || existingServantees.length === 0)) {
-      apiFetch<{ servantees: ServanteeResponse[] }>('/api/servantees')
+      apiFetch<{ servantees: ServanteeResponse[] }>('/api/servantees?view=basic')
         .then((res) => setInternalServantees(res.servantees ?? []))
         .catch(() => {})
     }

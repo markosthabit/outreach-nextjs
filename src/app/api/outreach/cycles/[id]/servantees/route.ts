@@ -5,12 +5,14 @@ import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { Servantee } from '@/models/servantee.model'
 import { UserRole } from '@/models/user.model'
 import { getAuthUser } from '@/lib/auth-helpers'
-import { byArabicName, isValidObjectId, jsonError } from '@/lib/api-utils'
+import { byArabicName, isValidObjectId, jsonError, parsePaging } from '@/lib/api-utils'
+import { matchesArabic } from '@/lib/arabic-search'
+import { withDeletedUserNames } from '@/lib/outreach-summary'
 
 const SERVANTEE_FIELDS = 'name phone church diocese education year'
 
-// GET /api/outreach/cycles/:id/servantees (Admin only)
-// Who was contacted in this cycle and who wasn't. "Not contacted" covers both
+// GET /api/outreach/cycles/:id/servantees?status=contacted|notContacted&q=&page=&limit= (Admin only)
+// One page of who was contacted in this cycle and who wasn't. "Not contacted" covers both
 // servantees assigned to a servant but not called yet, and servantees that were
 // never assigned in the cycle.
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -34,6 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const rows = assignments
       .filter((a) => a.servanteeId?._id) // skip records whose servantee was deleted
+      .map(withDeletedUserNames)
       .map((a) => ({
         servantee: a.servanteeId,
         assigned: true,
@@ -72,16 +75,40 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       })),
     ].sort(byName)
 
+    const { searchParams } = new URL(req.url)
+    const status = searchParams.get('status') === 'notContacted' ? 'notContacted' : 'contacted'
+    const { page: requestedPage, limit } = parsePaging(searchParams, 20, 100)
+
+    let list: any[] = status === 'contacted' ? contacted : notContacted
+    const q = (searchParams.get('q') || '').trim().slice(0, 200)
+    if (q) {
+      list = list.filter(
+        (r) =>
+          matchesArabic(q, r.servantee.name || '') ||
+          (r.servantee.phone || '').includes(q) ||
+          matchesArabic(q, r.servantee.church || '') ||
+          matchesArabic(q, r.servant?.name || '')
+      )
+    }
+
+    const total = list.length
+    const totalPages = Math.max(1, Math.ceil(total / limit))
+    const page = Math.min(requestedPage, totalPages)
+
     return NextResponse.json({
       cycle,
+      // Counters describe the whole cycle, not the current search
       summary: {
         total: contacted.length + notContacted.length,
         contacted: contacted.length,
         notContacted: notContacted.length,
         unassigned: unassigned.length,
       },
-      contacted,
-      notContacted,
+      status,
+      rows: list.slice((page - 1) * limit, page * limit),
+      total,
+      page,
+      totalPages,
     })
   } catch (error) {
     console.error('[GET /api/outreach/cycles/[id]/servantees]', error)

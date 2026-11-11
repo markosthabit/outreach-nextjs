@@ -4,7 +4,7 @@ import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { User, UserRole } from '@/models/user.model'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { isValidObjectId, jsonError, parseDate, readJson } from '@/lib/api-utils'
-import { OUTREACH_DETAIL_POPULATE } from '@/lib/outreach-summary'
+import { OUTREACH_DETAIL_POPULATE, withDeletedUserNames } from '@/lib/outreach-summary'
 
 const MAX_NOTE_LENGTH = 2000
 const CLOCK_SKEW_MS = 5 * 60 * 1000
@@ -94,9 +94,9 @@ export async function PATCH(
 
     const populated = await OutreachAssignment.findById(assignment._id)
       .populate(OUTREACH_DETAIL_POPULATE)
-      .lean()
+      .lean<any>()
 
-    return NextResponse.json({ assignment: populated })
+    return NextResponse.json({ assignment: populated && withDeletedUserNames(populated) })
   } catch (error) {
     console.error('[PATCH /api/outreach/assignments/[id]]', error)
     return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)

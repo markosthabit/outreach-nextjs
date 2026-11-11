@@ -9,6 +9,9 @@ export interface IOutreachAssignment {
   calledAt?: Date | null
   calledBy?: Types.ObjectId | null
   notes?: string
+  /** Name snapshots, filled in when the referenced account is deleted so history stays readable */
+  servantName?: string
+  calledByName?: string
 }
 
 export type OutreachAssignmentDocument = HydratedDocument<IOutreachAssignment>
@@ -23,6 +26,8 @@ const OutreachAssignmentSchema = new Schema<IOutreachAssignment>(
     calledAt: { type: Date, default: null },
     calledBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     notes: { type: String, trim: true, default: '' },
+    servantName: { type: String, trim: true },
+    calledByName: { type: String, trim: true },
   },
   { collection: 'outreach_assignments', timestamps: true }
 )

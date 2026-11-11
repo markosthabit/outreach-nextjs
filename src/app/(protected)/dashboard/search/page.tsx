@@ -12,7 +12,6 @@ import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { ChevronLeft, ChevronRight, Search, FileDown } from 'lucide-react'
 import { IconBrandWhatsapp } from '@tabler/icons-react'
-import { b64font } from '@/lib/fonts/amiri-font'
 
 interface Retreat {
   _id: string
@@ -66,8 +65,9 @@ export default function SearchPage() {
     const load = async () => {
       try {
         const [retreatsRes, servanteesRes] = await Promise.all([
-          apiFetch<{ retreats: Retreat[] }>('/api/retreats'),
-          apiFetch<{ servantees: Servantee[] }>('/api/servantees'),
+          // Slim lists: retreats carry attendee ids only, servantees core fields only
+          apiFetch<{ retreats: Retreat[] }>('/api/retreats?view=light'),
+          apiFetch<{ servantees: Servantee[] }>('/api/servantees?view=basic'),
         ])
 
         const sorted = (retreatsRes.retreats ?? []).sort(
@@ -143,9 +143,11 @@ export default function SearchPage() {
     if (filtered.length === 0) { toast.info('مفيش بيانات تتنزّل'); return }
     try {
       setLoadingPdf(true)
-      const [{ default: jsPDF }, { default: autoTable, applyPlugin }] = await Promise.all([
+      // The Arabic font is ~800 KB, so it is only downloaded when a PDF is actually exported
+      const [{ default: jsPDF }, { default: autoTable, applyPlugin }, { b64font }] = await Promise.all([
         import('jspdf'),
         import('jspdf-autotable'),
+        import('@/lib/fonts/amiri-font'),
       ])
       applyPlugin(jsPDF)
       const doc = new jsPDF({ orientation: 'p', unit: 'pt' })

@@ -26,6 +26,7 @@ import { GenerateAttendeesReport } from './generate-attendees-report'
 import { AddServanteeDialog } from '../servantees/add-servantee-dialog'
 import { filterServantees, filterRetreats, matchesArabic } from '@/lib/arabic-search'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { useAuth } from '@/contexts/AuthContext'
 
 type Servantee = { _id: string; name: string; phone?: string; retreats?: Array<any> }
 type Servant = { _id: string; name: string; email?: string; role?: string }
@@ -503,6 +504,8 @@ function FocusedRetreatCard({
 
 // ---------- RetreatsPage ----------
 export default function RetreatsPage() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'Admin' // deleting a retreat is admin-only (enforced by the API too)
   const [page, setPage] = useState(1)
   const [allRetreats, setAllRetreats] = useState<Retreat[]>([])
   const [allServantees, setAllServantees] = useState<Servantee[]>([])
@@ -539,7 +542,8 @@ export default function RetreatsPage() {
   const fetchRetreats = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await apiFetch<{ retreats: Retreat[] }>('/api/retreats')
+      // Light list (attendee ids only); a retreat's full details load when it is opened
+      const res = await apiFetch<{ retreats: Retreat[] }>('/api/retreats?view=light')
       const sorted = (res.retreats ?? []).sort((a, b) => {
         const timeA = a.startDate ? new Date(a.startDate).getTime() : 0
         const timeB = b.startDate ? new Date(b.startDate).getTime() : 0
@@ -565,6 +569,16 @@ export default function RetreatsPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  // The list rows are light, so opening a retreat loads its attendees, servants and notes
+  const selectRetreat = async (r: Retreat) => {
+    try {
+      const res = await apiFetch<{ retreat: Retreat }>(`/api/retreats/${r._id}`)
+      setSelectedRetreat(res.retreat)
+    } catch (err: any) {
+      toast.error(err?.message || 'معرفناش نفتح الخلوة')
+    }
+  }
 
   const refreshFocused = async () => {
     if (!selectedRetreat) return
@@ -649,7 +663,7 @@ export default function RetreatsPage() {
               paginated.map((r) => (
                 <TableRow
                   key={r._id}
-                  onClick={() => setSelectedRetreat(r)}
+                  onClick={() => selectRetreat(r)}
                   className={`cursor-pointer transition-colors ${
                     selectedRetreat?._id === r._id ? 'bg-muted/30' : 'hover:bg-muted/10'
                   }`}
@@ -685,6 +699,7 @@ export default function RetreatsPage() {
                         }
                       />
                       <NotesButton entityId={r._id} entityType="retreat" />
+                      {isAdmin && (
                       <ConfirmDeleteDialog
                         title="تمسح الخلوة؟"
                         description={`متأكد إنك عايز تمسح خلوة "${r.name}"؟`}
@@ -694,11 +709,12 @@ export default function RetreatsPage() {
                             toast.success('الخلوة اتمسحت')
                             fetchRetreats()
                             if (selectedRetreat?._id === r._id) setSelectedRetreat(null)
-                          } catch {
-                            toast.error('حصلت مشكلة وإحنا بنمسح الخلوة')
+                          } catch (err: any) {
+                            toast.error(err?.message || 'حصلت مشكلة وإحنا بنمسح الخلوة')
                           }
                         }}
                       />
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -716,7 +732,7 @@ export default function RetreatsPage() {
           paginated.map((r) => (
             <Card
               key={r._id}
-              onClick={() => setSelectedRetreat(r)}
+              onClick={() => selectRetreat(r)}
               className={`p-4 space-y-2 cursor-pointer transition-colors ${
                 selectedRetreat?._id === r._id ? 'border-primary' : ''
               }`}
@@ -765,6 +781,7 @@ export default function RetreatsPage() {
                   }
                 />
                 <NotesButton entityId={r._id} entityType="retreat" />
+                {isAdmin && (
                 <ConfirmDeleteDialog
                   title="تمسح الخلوة؟"
                   description={`متأكد إنك عايز تمسح خلوة "${r.name}"؟`}
@@ -774,11 +791,12 @@ export default function RetreatsPage() {
                       toast.success('الخلوة اتمسحت')
                       fetchRetreats()
                       if (selectedRetreat?._id === r._id) setSelectedRetreat(null)
-                    } catch {
-                      toast.error('حصلت مشكلة وإحنا بنمسح الخلوة')
+                    } catch (err: any) {
+                      toast.error(err?.message || 'حصلت مشكلة وإحنا بنمسح الخلوة')
                     }
                   }}
                 />
+                )}
               </div>
             </Card>
           ))

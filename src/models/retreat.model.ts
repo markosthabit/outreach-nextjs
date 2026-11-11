@@ -33,6 +33,10 @@ const RetreatSchema = new Schema<IRetreat>(
 
 (RetreatSchema as any).set('strictPopulate', false);
 
+// "Which retreats did this servantee attend?" and the newest-first listing
+RetreatSchema.index({ attendees: 1 });
+RetreatSchema.index({ startDate: -1 });
+
 // In Next.js dev HMR, refresh cached model if it lacks the new servants path
 if (mongoose.models.Retreat && !mongoose.models.Retreat.schema.paths.servants) {
   delete (mongoose.models as any).Retreat;

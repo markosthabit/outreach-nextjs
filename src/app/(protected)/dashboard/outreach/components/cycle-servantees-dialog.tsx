@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -9,14 +9,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CheckCircle2, PhoneOff, Search, User, Users } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, ChevronRight, PhoneOff, Search, User, Users } from 'lucide-react'
 import { IconBrandWhatsapp } from '@tabler/icons-react'
 import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import { matchesArabic } from '@/lib/arabic-search'
+import { useDebounce } from '@/hooks/use-debounce'
 import { formatDate, formatDateTime, whatsappHref } from './outreach-utils'
 
 interface Row {
@@ -32,9 +33,13 @@ interface Row {
 
 interface CycleServanteesData {
   summary: { total: number; contacted: number; notContacted: number; unassigned: number }
-  contacted: Row[]
-  notContacted: Row[]
+  rows: Row[]
+  total: number
+  page: number
+  totalPages: number
 }
+
+const PAGE_SIZE = 20
 
 interface Props {
   open: boolean
@@ -47,19 +52,34 @@ export function CycleServanteesDialog({ open, onOpenChange, cycle }: Props) {
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState<'contacted' | 'notContacted'>('contacted')
   const [searchTerm, setSearchTerm] = useState('')
+  const [page, setPage] = useState(1)
+  const debouncedSearch = useDebounce(searchTerm, 400)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const cycleId = cycle?._id
 
+  // Each cycle opens on a clean first page
   useEffect(() => {
-    if (!open || !cycleId) return
-    let cancelled = false
+    if (!open) return
     setData(null)
     setTab('contacted')
     setSearchTerm('')
+    setPage(1)
+  }, [open, cycleId])
+
+  // Only the visible page is fetched; tab, search and page all go to the server
+  const query = debouncedSearch.trim()
+  useEffect(() => {
+    if (!open || !cycleId) return
+    let cancelled = false
     setLoading(true)
-    apiFetch<CycleServanteesData>(`/api/outreach/cycles/${cycleId}/servantees`)
+    const params = new URLSearchParams({ status: tab, page: String(page), limit: String(PAGE_SIZE) })
+    if (query) params.set('q', query)
+    apiFetch<CycleServanteesData>(`/api/outreach/cycles/${cycleId}/servantees?${params}`)
       .then((res) => {
-        if (!cancelled) setData(res)
+        if (cancelled) return
+        setData(res)
+        listRef.current?.scrollTo({ top: 0 })
       })
       .catch((err: any) => {
         if (!cancelled) toast.error(err?.message || 'معرفناش نحمّل مخدومين الدورة')
@@ -70,20 +90,10 @@ export function CycleServanteesDialog({ open, onOpenChange, cycle }: Props) {
     return () => {
       cancelled = true
     }
-  }, [open, cycleId])
+  }, [open, cycleId, tab, page, query])
 
-  const rows = useMemo(() => {
-    const list = data ? data[tab] : []
-    const q = searchTerm.trim()
-    if (!q) return list
-    return list.filter(
-      (r) =>
-        matchesArabic(q, r.servantee.name || '') ||
-        (r.servantee.phone || '').includes(q) ||
-        matchesArabic(q, r.servantee.church || '') ||
-        matchesArabic(q, r.servant?.name || '')
-    )
-  }, [data, tab, searchTerm])
+  const rows = data?.rows ?? []
+  const totalPages = data?.totalPages ?? 1
 
   const tabs = [
     {
@@ -126,7 +136,10 @@ export function CycleServanteesDialog({ open, onOpenChange, cycle }: Props) {
                 key={t.key}
                 type="button"
                 aria-pressed={tab === t.key}
-                onClick={() => setTab(t.key)}
+                onClick={() => {
+                  setTab(t.key)
+                  setPage(1)
+                }}
                 className={cn(
                   'flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium transition-all cursor-pointer',
                   tab === t.key ? cn(t.active, 'shadow-xs font-semibold') : 'text-muted-foreground hover:text-foreground'
@@ -151,7 +164,10 @@ export function CycleServanteesDialog({ open, onOpenChange, cycle }: Props) {
               type="search"
               placeholder="دوّر بالاسم أو التليفون أو الكنيسة أو الخادم..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setPage(1)
+              }}
               className="pr-9 h-10 text-base sm:text-sm"
             />
           </div>
@@ -163,8 +179,11 @@ export function CycleServanteesDialog({ open, onOpenChange, cycle }: Props) {
           )}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1">
-          {loading ? (
+        <div
+          ref={listRef}
+          className={cn('flex-1 min-h-0 overflow-y-auto -mx-1 px-1 transition-opacity', loading && data && 'opacity-60')}
+        >
+          {loading && !data ? (
             <div className="space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-16 rounded-lg" />
@@ -238,6 +257,37 @@ export function CycleServanteesDialog({ open, onOpenChange, cycle }: Props) {
             </ul>
           )}
         </div>
+
+        {data && data.total > 0 && (
+          <div className="flex items-center justify-between gap-3 pt-3 border-t shrink-0">
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {(data.page - 1) * PAGE_SIZE + 1}–{Math.min(data.page * PAGE_SIZE, data.total)} من {data.total}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={loading || data.page <= 1}
+              >
+                <ChevronRight className="h-4 w-4 ml-1" />
+                اللي قبل
+              </Button>
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {data.page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={loading || data.page >= totalPages}
+              >
+                اللي بعد
+                <ChevronLeft className="h-4 w-4 mr-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

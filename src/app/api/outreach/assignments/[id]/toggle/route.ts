@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db'
 import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { isValidObjectId, jsonError } from '@/lib/api-utils'
+import { withDeletedUserNames } from '@/lib/outreach-summary'
 
 const MAX_NOTE_LENGTH = 2000
 
@@ -51,9 +52,9 @@ export async function PATCH(
       .populate('servanteeId', 'name phone church diocese education year birthDate notes')
       .populate('servantId', 'name email')
       .populate('calledBy', 'name email')
-      .lean()
+      .lean<any>()
 
-    return NextResponse.json({ assignment: populated })
+    return NextResponse.json({ assignment: populated && withDeletedUserNames(populated) })
   } catch (error) {
     console.error('[PATCH /api/outreach/assignments/[id]/toggle]', error)
     return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)

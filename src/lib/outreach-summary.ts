@@ -26,10 +26,25 @@ export async function getCurrentOutreachCycle(): Promise<any | null> {
   )
 }
 
-const person = (u: any) => (u?._id ? { _id: u._id.toString(), name: u.name || '' } : null)
+const person = (u: any) =>
+  u?._id ? { _id: u._id.toString(), name: u.name || '' } : u?.deleted ? { _id: '', name: u.name || '' } : null
+
+/**
+ * Deleting an account keeps its outreach records (with a snapshot of the name),
+ * but the reference then populates to null. This puts a readable stand-in back
+ * on a populated, lean assignment so every screen can keep showing who it was.
+ */
+export function withDeletedUserNames<T extends Record<string, any>>(assignment: T): T {
+  const a = assignment as Record<string, any>
+  const standIn = (name: string) => ({ _id: '', name: `${name} (حساب ممسوح)`, email: '', deleted: true })
+  if (!a.servantId && a.servantName) a.servantId = standIn(a.servantName)
+  if (a.isCalled && !a.calledBy && a.calledByName) a.calledBy = standIn(a.calledByName)
+  return assignment
+}
 
 /** Compact outreach status shown next to a servantee in the servantees list. */
 export function toOutreachSummary(a: any) {
+  withDeletedUserNames(a)
   return {
     assignmentId: a._id.toString(),
     isCalled: !!a.isCalled,

@@ -76,7 +76,7 @@ export function EditServanteeDialog({
   // Load existing servantees for suggestions
   useEffect(() => {
     if (open && existingServantees.length === 0) {
-      apiFetch<{ servantees: any[] }>('/api/servantees')
+      apiFetch<{ servantees: any[] }>('/api/servantees?view=basic')
         .then((res) => setExistingServantees(res.servantees ?? []))
         .catch(() => {})
     }

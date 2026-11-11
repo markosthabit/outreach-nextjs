@@ -30,6 +30,16 @@ const servantFields = [
   },
 ]
 
+// Changing your own password requires the current one (enforced by the API)
+const ownAccountFields = servantFields.flatMap((f) =>
+  f.name === 'password'
+    ? [
+        { name: 'currentPassword', label: 'كلمة السر الحالية (لو هتغيّر كلمة السر)', type: 'password' },
+        { ...f, label: 'كلمة السر الجديدة (سيبها فاضية لو مش هتغيّرها)' },
+      ]
+    : [f]
+)
+
 export default function ServantsPage() {
   const { user } = useAuth()
   const [servants, setServants] = useState<any[]>([])
@@ -153,7 +163,7 @@ export default function ServantsPage() {
                       <EntityDialog
                         title="عدّل بيانات الخادم"
                         endpoint={`api/users`}
-                        fields={servantFields}
+                        fields={s._id === user.id ? ownAccountFields : servantFields}
                         mode="edit"
                         initialData={s}
                         onSuccess={fetchServants}
@@ -168,11 +178,15 @@ export default function ServantsPage() {
                         description={`متأكد إنك عايز تمسح الخادم "${s.name}"؟`}
                         onConfirm={async () => {
                           try {
-                            await apiFetch(`/api/users/${s._id}`, { method: 'DELETE' })
-                            toast.success('الخادم اتمسح')
+                            const res = await apiFetch<{ keptOutreachRecords?: number }>(`/api/users/${s._id}`, { method: 'DELETE' })
+                            toast.success(
+                              res.keptOutreachRecords
+                                ? `الخادم اتمسح، وسجل افتقاده (${res.keptOutreachRecords}) لسه محفوظ`
+                                : 'الخادم اتمسح'
+                            )
                             fetchServants()
-                          } catch {
-                            toast.error('حصلت مشكلة وإحنا بنمسح الخادم')
+                          } catch (err: any) {
+                            toast.error(err?.message || 'حصلت مشكلة وإحنا بنمسح الخادم')
                           }
                         }}
                       />
@@ -207,7 +221,7 @@ export default function ServantsPage() {
                 <EntityDialog
                   title="عدّل بيانات الخادم"
                   endpoint={`api/users`}
-                  fields={servantFields}
+                  fields={s._id === user.id ? ownAccountFields : servantFields}
                   mode="edit"
                   initialData={s}
                   onSuccess={fetchServants}
@@ -222,11 +236,15 @@ export default function ServantsPage() {
                   description={`متأكد إنك عايز تمسح الخادم "${s.name}"؟`}
                   onConfirm={async () => {
                     try {
-                      await apiFetch(`/api/users/${s._id}`, { method: 'DELETE' })
-                      toast.success('الخادم اتمسح')
+                      const res = await apiFetch<{ keptOutreachRecords?: number }>(`/api/users/${s._id}`, { method: 'DELETE' })
+                      toast.success(
+                        res.keptOutreachRecords
+                          ? `الخادم اتمسح، وسجل افتقاده (${res.keptOutreachRecords}) لسه محفوظ`
+                          : 'الخادم اتمسح'
+                      )
                       fetchServants()
-                    } catch {
-                      toast.error('حصلت مشكلة وإحنا بنمسح الخادم')
+                    } catch (err: any) {
+                      toast.error(err?.message || 'حصلت مشكلة وإحنا بنمسح الخادم')
                     }
                   }}
                 />

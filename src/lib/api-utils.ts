@@ -17,6 +17,32 @@ export function parseDate(value: unknown): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
+/** `page` / `limit` query params, clamped to sane bounds. */
+export function parsePaging(searchParams: URLSearchParams, defaultLimit = 10, maxLimit = 100) {
+  const positiveInt = (value: string | null, fallback: number) => {
+    const n = Math.floor(Number(value))
+    return Number.isFinite(n) && n >= 1 ? n : fallback
+  }
+  return {
+    page: positiveInt(searchParams.get('page'), 1),
+    limit: Math.min(maxLimit, positiveInt(searchParams.get('limit'), defaultLimit)),
+  }
+}
+
+/**
+ * The browser's `Date#getTimezoneOffset()` (minutes, UTC − local) sent as `tz`.
+ * Falls back to the server's own offset when missing or nonsensical.
+ */
+export function parseTzOffset(value: string | null): number {
+  const n = value === null || value === '' ? NaN : Number(value)
+  return Number.isFinite(n) && Math.abs(n) <= 14 * 60 ? n : new Date().getTimezoneOffset()
+}
+
+/** Month (0–11) of `date` as seen in the timezone with the given offset. */
+export function monthInZone(date: Date, tzOffsetMinutes: number): number {
+  return new Date(date.getTime() - tzOffsetMinutes * 60_000).getUTCMonth()
+}
+
 /** Sort comparator by Arabic name, for populated docs that Mongo can't sort server-side. */
 export function byArabicName(getName: (x: any) => string | undefined) {
   return (a: any, b: any) => (getName(a) || '').localeCompare(getName(b) || '', 'ar')

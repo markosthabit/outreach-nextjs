@@ -6,6 +6,11 @@ import { Retreat } from '@/models/retreat.model'
 import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { isNonEmptyString, isValidObjectId, readJson } from '@/lib/api-utils'
+import { OutreachCycle } from '@/models/outreach-cycle.model'
+import { signAccessToken, signRefreshToken } from '@/lib/jwt'
+import { setAccessCookie, setRefreshCookie } from '@/lib/auth-cookies'
+import { hashToken } from '@/lib/token-hash'
+import { rateLimit } from '@/lib/rate-limit'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -81,6 +86,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (body.password.length < 8 || body.password.length > 200) {
         return NextResponse.json({ message: 'كلمة السر لازم تبقى 8 حروف على الأقل' }, { status: 400 })
       }
+      // Changing your own password requires the current one, so an unlocked screen
+      // or a stolen session can't be turned into a permanent account takeover.
+      if (authUser.sub === id) {
+        const attempts = rateLimit(`password-change:${id}`, 10, 15 * 60 * 1000)
+        if (!attempts.allowed) {
+          return NextResponse.json(
+            { message: 'جربت كتير، استنى شوية وجرّب تاني' },
+            { status: 429, headers: { 'Retry-After': String(attempts.retryAfterSeconds) } }
+          )
+        }
+        if (typeof body.currentPassword !== 'string' || !body.currentPassword) {
+          return NextResponse.json({ message: 'اكتب كلمة السر الحالية عشان تغيّرها' }, { status: 400 })
+        }
+        const self = await User.findById(id).select('+password')
+        if (!self) return NextResponse.json({ message: 'الحساب مش موجود' }, { status: 404 })
+        if (!(await bcrypt.compare(body.currentPassword, self.password))) {
+          return NextResponse.json({ message: 'كلمة السر الحالية غلط' }, { status: 403 })
+        }
+      }
       update.password = await bcrypt.hash(body.password, 10)
     }
 
@@ -102,15 +126,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
-    // Changing someone's password signs them out everywhere (their refresh token stops working)
-    const unset = update.password && authUser.sub !== id ? { $unset: { refreshTokenHash: 1 } } : {}
+    // A password change ends every other session:
+    // - someone else's password → their refresh token is revoked outright
+    // - your own password → this browser gets a fresh refresh token, older ones stop working
+    const changedOwnPassword = !!update.password && authUser.sub === id
+    const unset = update.password && !changedOwnPassword ? { $unset: { refreshTokenHash: 1 } } : {}
+
+    let newRefreshToken: string | null = null
+    if (changedOwnPassword) {
+      newRefreshToken = await signRefreshToken({ sub: id, role: authUser.role })
+      update.refreshTokenHash = hashToken(newRefreshToken)
+    }
 
     const user = await User.findByIdAndUpdate(id, { $set: update, ...unset }, { new: true, runValidators: true })
     if (!user) return NextResponse.json({ message: 'الحساب مش موجود' }, { status: 404 })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     })
+    if (newRefreshToken) {
+      setRefreshCookie(response, newRefreshToken)
+      setAccessCookie(response, await signAccessToken({ sub: id, role: user.role }))
+    }
+    return response
   } catch (error) {
     console.error('[PATCH /users/:id]', error)
     return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })
@@ -134,17 +172,36 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ message: 'مينفعش تمسح حسابك بنفسك' }, { status: 400 })
     }
 
-    const user = await User.findByIdAndDelete(id)
+    const user = await User.findById(id).select('name')
     if (!user) return NextResponse.json({ message: 'الحساب مش موجود' }, { status: 404 })
 
-    // Clean up references: their outreach assignments go back to the pool,
-    // and they're removed from retreat servant lists.
-    const [{ deletedCount }] = await Promise.all([
-      OutreachAssignment.deleteMany({ servantId: user._id }),
-      Retreat.updateMany({ servants: user._id }, { $pull: { servants: user._id } }),
+    // Outreach history is kept. The account's name is copied onto its records first,
+    // because after the delete the reference no longer resolves to a name.
+    await Promise.all([
+      OutreachAssignment.updateMany({ servantId: user._id }, { $set: { servantName: user.name } }),
+      OutreachAssignment.updateMany({ calledBy: user._id }, { $set: { calledByName: user.name } }),
     ])
 
-    return NextResponse.json({ message: 'الحساب اتمسح', removedOutreachAssignments: deletedCount })
+    // Only untouched work is released: servantees in a running cycle that this servant
+    // never contacted and wrote no notes on go back to the pool so they can be reassigned.
+    const activeCycleIds = await OutreachCycle.find({ status: 'active' }).distinct('_id')
+    const [{ deletedCount }, keptOutreachRecords] = await Promise.all([
+      OutreachAssignment.deleteMany({
+        servantId: user._id,
+        cycleId: { $in: activeCycleIds },
+        isCalled: false,
+        notes: { $in: ['', null] },
+      }),
+      Retreat.updateMany({ servants: user._id }, { $pull: { servants: user._id } }),
+    ]).then(async ([released]) => [released, await OutreachAssignment.countDocuments({ servantId: user._id })] as const)
+
+    await User.deleteOne({ _id: user._id })
+
+    return NextResponse.json({
+      message: 'الحساب اتمسح',
+      releasedOutreachAssignments: deletedCount,
+      keptOutreachRecords,
+    })
   } catch (error) {
     console.error('[DELETE /users/:id]', error)
     return NextResponse.json({ message: 'حصلت مشكلة في السيستم، جرّب تاني' }, { status: 500 })

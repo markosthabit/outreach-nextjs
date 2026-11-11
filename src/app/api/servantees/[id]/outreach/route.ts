@@ -11,6 +11,7 @@ import {
   OUTREACH_SUMMARY_POPULATE,
   getCurrentOutreachCycle,
   toOutreachSummary,
+  withDeletedUserNames,
 } from '@/lib/outreach-summary'
 
 type Ctx = { params: Promise<{ id: string }> }
@@ -28,9 +29,9 @@ export async function GET(req: NextRequest, { params }: Ctx) {
     const history = await OutreachAssignment.find({ servanteeId: id })
       .populate(OUTREACH_DETAIL_POPULATE)
       .sort({ createdAt: -1 })
-      .lean()
+      .lean<any[]>()
 
-    return NextResponse.json({ history })
+    return NextResponse.json({ history: history.map(withDeletedUserNames) })
   } catch (error) {
     console.error('[GET /servantees/:id/outreach]', error)
     return jsonError('حصلت مشكلة في السيستم، جرّب تاني', 500)

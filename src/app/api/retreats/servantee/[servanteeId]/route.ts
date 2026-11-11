@@ -5,6 +5,7 @@ import { isValidObjectId } from '@/lib/api-utils'
 import { Retreat } from '@/models/retreat.model'
 
 // GET /api/retreats/servantee/:servanteeId
+// Summary only (name, place, dates) — not every attendee and note of each retreat.
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ servanteeId: string }> }
@@ -23,8 +24,8 @@ export async function GET(
 
     const retreats = await Retreat.find({ attendees: servanteeId })
       .sort({ startDate: -1, createdAt: -1 })
-      .populate('attendees', 'name phone church')
-      .populate('notes', 'content createdAt')
+      .select('name location startDate endDate')
+      .lean()
 
     return NextResponse.json({ retreats })
   } catch (error) {

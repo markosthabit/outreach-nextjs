@@ -3,7 +3,7 @@ import { connectDB } from '@/lib/db'
 import { Retreat } from '@/models/retreat.model'
 import { Note } from '@/models/note.model'
 import { Servantee } from '@/models/servantee.model'
-import { User } from '@/models/user.model'
+import { User, UserRole } from '@/models/user.model'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { isValidObjectId, readJson } from '@/lib/api-utils'
 import { parseRetreatInput } from '@/lib/retreat-input'
@@ -114,11 +114,15 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   }
 }
 
-// DELETE /api/retreats/:id
+// DELETE /api/retreats/:id — Admin only
 export async function DELETE(req: NextRequest, { params }: Ctx) {
   try {
     await connectDB()
-    if (!(await getAuthUser(req))) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
+    const authUser = await getAuthUser(req)
+    if (!authUser) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
+    if (authUser.role !== UserRole.ADMIN) {
+      return NextResponse.json({ message: 'المسؤولين بس اللي يقدروا يمسحوا خلوات' }, { status: 403 })
+    }
 
     const { id } = await params
     if (!isValidObjectId(id)) return NextResponse.json({ message: 'معرّف الخلوة غلط' }, { status: 400 })

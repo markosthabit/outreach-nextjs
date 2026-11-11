@@ -2,15 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { Note } from '@/models/note.model'
 import { getAuthUser } from '@/lib/auth-helpers'
+import { UserRole } from '@/models/user.model'
 import { isNonEmptyString, isValidObjectId, readJson } from '@/lib/api-utils'
 
 const MAX_NOTE_LENGTH = 5000 // keep in sync with src/app/api/notes/route.ts
 
 type Ctx = { params: Promise<{ noteId: string }> }
 
-async function guard(req: NextRequest, params: Ctx['params']) {
+async function guard(req: NextRequest, params: Ctx['params'], adminOnly = false) {
   await connectDB()
-  if (!(await getAuthUser(req))) return { error: NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 }) }
+  const authUser = await getAuthUser(req)
+  if (!authUser) return { error: NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 }) }
+  if (adminOnly && authUser.role !== UserRole.ADMIN) {
+    return { error: NextResponse.json({ message: 'المسؤولين بس اللي يقدروا يمسحوا' }, { status: 403 }) }
+  }
   const { noteId } = await params
   if (!isValidObjectId(noteId)) return { error: NextResponse.json({ message: 'معرّف الملاحظة غلط' }, { status: 400 }) }
   return { noteId }
@@ -59,10 +64,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   }
 }
 
-// DELETE /api/notes/:noteId
+// DELETE /api/notes/:noteId — Admin only
 export async function DELETE(req: NextRequest, { params }: Ctx) {
   try {
-    const g = await guard(req, params)
+    const g = await guard(req, params, true)
     if (g.error) return g.error
 
     const note = await Note.findByIdAndDelete(g.noteId)

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/db'
 import { User } from '@/models/user.model'
 import { verifyRefreshToken, signAccessToken } from '@/lib/jwt'
 import { clearAuthCookies, setAccessCookie } from '@/lib/auth-cookies'
+import { tokenMatchesHash } from '@/lib/token-hash'
 
 function unauthorized(message: string) {
   const res = NextResponse.json({ message }, { status: 401 })
@@ -29,8 +29,7 @@ export async function POST(req: NextRequest) {
     const user = await User.findById(payload.sub).select('+refreshTokenHash')
     if (!user || !user.refreshTokenHash) return unauthorized('لازم تسجل دخول الأول')
 
-    const isValid = await bcrypt.compare(refreshToken, user.refreshTokenHash)
-    if (!isValid) return unauthorized('لازم تسجل دخول الأول')
+    if (!tokenMatchesHash(refreshToken, user.refreshTokenHash)) return unauthorized('لازم تسجل دخول الأول')
 
     // Role is re-read from the DB, so role changes apply on the next refresh
     const newAccessToken = await signAccessToken({ sub: user._id.toString(), role: user.role })

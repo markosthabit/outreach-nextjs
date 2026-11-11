@@ -4,6 +4,7 @@ import { OutreachRound } from '@/models/outreach-round.model'
 import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { isValidObjectId, jsonError } from '@/lib/api-utils'
+import { withDeletedUserNames } from '@/lib/outreach-summary'
 
 // GET /api/outreach/report?roundId=...
 export async function GET(req: NextRequest) {
@@ -31,7 +32,13 @@ export async function GET(req: NextRequest) {
       .populate('servanteeId', 'name phone church diocese education year birthDate')
       .populate('servantId', 'name email')
       .populate('calledBy', 'name email')
-      .lean()
+      .lean<any[]>()
+
+    // Records of deleted accounts are kept: group each under a stand-in "servant"
+    for (const a of assignments) {
+      withDeletedUserNames(a)
+      if (a.servantId?.deleted) a.servantId = { ...a.servantId, _id: `deleted:${a.servantName}` }
+    }
 
     const totalAssigned = assignments.length
     const totalCalled = assignments.filter((a) => a.isCalled).length
