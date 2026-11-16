@@ -28,7 +28,7 @@ import { filterServantees, filterRetreats, matchesArabic } from '@/lib/arabic-se
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 
-type Servantee = { _id: string; name: string; phone?: string; retreats?: Array<any> }
+type Servantee = { _id: string; name: string; phone?: string; retreats?: Array<any>; hasNotes?: boolean }
 type Servant = { _id: string; name: string; email?: string; role?: string }
 
 type Retreat = {
@@ -41,6 +41,8 @@ type Retreat = {
   contents?: string
   exercises?: string
   notes?: Array<{ _id?: string; content?: string }>
+  /** At least one note is written on this retreat (light list only). */
+  hasNotes?: boolean
   attendees?: Servantee[] | string[]
   servants?: Servant[] | string[]
 }
@@ -296,7 +298,7 @@ function FocusedRetreatCard({
         isFirstTimer = true // Just added or data missing
       }
 
-      return { id, name, phone, isFirstTimer }
+      return { id, name, phone, isFirstTimer, hasNotes: !!s?.hasNotes }
     })
   }, [retreat.attendees, retreat._id, allServantees])
 
@@ -437,7 +439,7 @@ function FocusedRetreatCard({
                       <TableCell>{a.phone}</TableCell>
                       <TableCell>
                         <div className="flex gap-1 justify-end">
-                          <NotesButton entityId={a.id} entityType="servantee" />
+                          <NotesButton entityId={a.id} entityType="servantee" entityName={a.name} hasNotes={a.hasNotes} />
                           <ConfirmDeleteDialog
                             onConfirm={() => onRemoveAttendee(a.id)}
                             title="تشيل المخدوم؟"
@@ -472,7 +474,7 @@ function FocusedRetreatCard({
                   <p className="text-xs text-muted-foreground">{a.phone}</p>
                 </div>
                 <div className="flex gap-1">
-                  <NotesButton entityId={a.id} entityType="servantee" />
+                  <NotesButton entityId={a.id} entityType="servantee" entityName={a.name} hasNotes={a.hasNotes} />
                   <ConfirmDeleteDialog
                     onConfirm={() => onRemoveAttendee(a.id)}
                     title="تشيل المخدوم؟"
@@ -698,7 +700,7 @@ export default function RetreatsPage() {
                           </Button>
                         }
                       />
-                      <NotesButton entityId={r._id} entityType="retreat" />
+                      <NotesButton entityId={r._id} entityType="retreat" entityName={r.name} hasNotes={r.hasNotes} />
                       {isAdmin && (
                       <ConfirmDeleteDialog
                         title="تمسح الخلوة؟"
@@ -780,7 +782,7 @@ export default function RetreatsPage() {
                     </Button>
                   }
                 />
-                <NotesButton entityId={r._id} entityType="retreat" />
+                <NotesButton entityId={r._id} entityType="retreat" entityName={r.name} hasNotes={r.hasNotes} />
                 {isAdmin && (
                 <ConfirmDeleteDialog
                   title="تمسح الخلوة؟"

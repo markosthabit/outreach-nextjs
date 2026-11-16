@@ -8,6 +8,7 @@ import { parseServanteeInput } from '@/lib/servantee-input'
 import { filterServantees } from '@/lib/arabic-search'
 import { getInitialLetter, normalizeChurchName, normalizeCollegeName } from '@/lib/servantee-filters'
 import { getServanteeListBase } from '@/lib/servantee-list-cache'
+import { idsWithNotes } from '@/lib/notes-flags'
 
 const LIST_FIELDS = 'name phone church diocese education year birthDate isActive'
 
@@ -34,12 +35,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ servantees })
     }
 
-    const [servantees, allRetreats] = await Promise.all([
+    const [servantees, allRetreats, noted] = await Promise.all([
       Servantee.find().select(LIST_FIELDS).lean(),
       Retreat.find()
         .sort({ startDate: -1, createdAt: -1 })
         .select('name location startDate endDate attendees')
         .lean(),
+      idsWithNotes('servanteeId'),
     ])
 
     // Index retreats by attendee once. The attendee list itself is not repeated
@@ -57,6 +59,7 @@ export async function GET(req: NextRequest) {
     const servanteesWithRetreats = servantees.map((s: any) => ({
       ...s,
       retreats: retreatsByServantee.get(s._id.toString()) || [],
+      hasNotes: noted.has(s._id.toString()),
     }))
 
     return NextResponse.json({ servantees: servanteesWithRetreats })

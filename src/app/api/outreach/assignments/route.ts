@@ -7,6 +7,8 @@ import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { User } from '@/models/user.model'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { byArabicName, isValidObjectId, jsonError } from '@/lib/api-utils'
+import { getCurrentOutreachRound } from '@/lib/outreach-summary'
+import { idsWithNotes } from '@/lib/notes-flags'
 
 const MAX_ASSIGN_BATCH = 1000
 
@@ -33,19 +35,9 @@ export async function GET(req: NextRequest) {
     } else {
       // Default: newest active round of the active cycle (falls back to its newest round).
       // Without a round there is nothing to show — never return assignments from every cycle.
-      const activeCycle = await OutreachCycle.findOne({ status: 'active' }).select('_id').lean()
-      if (!activeCycle) return NextResponse.json({ assignments: [] })
-      const round =
-        (await OutreachRound.findOne({ cycleId: activeCycle._id, status: 'active' })
-          .sort({ createdAt: -1 })
-          .select('_id')
-          .lean()) ||
-        (await OutreachRound.findOne({ cycleId: activeCycle._id })
-          .sort({ createdAt: -1 })
-          .select('_id')
-          .lean())
-      if (!round) return NextResponse.json({ assignments: [] })
-      query.roundId = round._id
+      const current = await getCurrentOutreachRound()
+      if (!current) return NextResponse.json({ assignments: [] })
+      query.roundId = current.round._id
     }
 
     // Servants only ever see their own assignments
@@ -56,10 +48,19 @@ export async function GET(req: NextRequest) {
     }
 
     const assignments = await OutreachAssignment.find(query)
-      .populate('servanteeId', 'name phone church diocese education year birthDate notes')
+      .populate('servanteeId', 'name phone church diocese education year birthDate')
       .populate('servantId', 'name email')
       .populate('calledBy', 'name email')
-      .lean()
+      .lean<any[]>()
+
+    // Flag servantees that have notes, so their notes icon can show an indicator
+    const noted = await idsWithNotes(
+      'servanteeId',
+      assignments.map((a) => a.servanteeId?._id).filter(Boolean)
+    )
+    for (const a of assignments) {
+      if (a.servanteeId?._id) a.servanteeId.hasNotes = noted.has(a.servanteeId._id.toString())
+    }
 
     // Mongo can't sort on a populated field, so sort here: not-called first, then by name
     assignments.sort((a: any, b: any) => {

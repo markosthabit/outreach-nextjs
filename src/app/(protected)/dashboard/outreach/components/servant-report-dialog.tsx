@@ -38,6 +38,8 @@ import { IconBrandWhatsapp } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { matchesArabic } from '@/lib/arabic-search'
 import { formatDateTime, telHref, whatsappHref } from './outreach-utils'
+import NotesButton from '@/components/shared/notes-button'
+import { EditServanteeDialog } from '../../servantees/edit-servantee-dialog'
 
 interface ServantReportDialogProps {
   open: boolean
@@ -53,6 +55,8 @@ interface ServantReportDialogProps {
   roundName?: string
   onToggleAssignment?: (assignmentId: string, newState: boolean) => Promise<void>
   onRemoveAssignment?: (assignmentId: string) => Promise<void>
+  /** Called after a servantee's details were edited, so the report can reload. */
+  onServanteeUpdated?: () => void
 }
 
 export function ServantReportDialog({
@@ -62,6 +66,7 @@ export function ServantReportDialog({
   roundName,
   onToggleAssignment,
   onRemoveAssignment,
+  onServanteeUpdated,
 }: ServantReportDialogProps) {
   const [filterMode, setFilterMode] = useState<'all' | 'called' | 'notCalled'>('all')
   const [searchTerm, setSearchTerm] = useState('')
@@ -248,7 +253,7 @@ export function ServantReportDialog({
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                           {tel && (
                             <Button variant="outline" size="sm" className="h-9 sm:h-8 gap-1 text-xs" asChild>
                               <a href={tel} aria-label="كلّمه">
@@ -268,6 +273,25 @@ export function ServantReportDialog({
                                 <IconBrandWhatsapp className="h-3.5 w-3.5" />
                               </a>
                             </Button>
+                          )}
+                          {s?._id && (
+                            <>
+                              {/* The servantee's own notes and details (same as the servantees screen) */}
+                              <NotesButton
+                                entityId={s._id}
+                                entityType="servantee"
+                                entityName={s.name}
+                                hasNotes={s.hasNotes}
+                                compact
+                                iconVariant="outline"
+                                className="h-9 w-9 sm:h-8 sm:w-8"
+                              />
+                              <EditServanteeDialog
+                                servantee={s}
+                                onUpdated={() => onServanteeUpdated?.()}
+                                className="h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground"
+                              />
+                            </>
                           )}
                           {onRemoveAssignment && (
                             <Button

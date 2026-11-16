@@ -5,6 +5,7 @@ import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { isValidObjectId, jsonError } from '@/lib/api-utils'
 import { withDeletedUserNames } from '@/lib/outreach-summary'
+import { idsWithNotes } from '@/lib/notes-flags'
 
 // GET /api/outreach/report?roundId=...
 export async function GET(req: NextRequest) {
@@ -34,8 +35,15 @@ export async function GET(req: NextRequest) {
       .populate('calledBy', 'name email')
       .lean<any[]>()
 
+    // Flag servantees that have notes, so their notes icon can show an indicator
+    const noted = await idsWithNotes(
+      'servanteeId',
+      assignments.map((a) => a.servanteeId?._id).filter(Boolean)
+    )
+
     // Records of deleted accounts are kept: group each under a stand-in "servant"
     for (const a of assignments) {
+      if (a.servanteeId?._id) a.servanteeId.hasNotes = noted.has(a.servanteeId._id.toString())
       withDeletedUserNames(a)
       if (a.servantId?.deleted) a.servantId = { ...a.servantId, _id: `deleted:${a.servantName}` }
     }

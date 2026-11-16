@@ -4,11 +4,12 @@ import { Retreat } from '@/models/retreat.model'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { readJson } from '@/lib/api-utils'
 import { parseRetreatInput } from '@/lib/retreat-input'
+import { idsWithNotes } from '@/lib/notes-flags'
 import '@/models/user.model'
 
 // GET /api/retreats
 // ?view=light — for lists: attendees stay as plain ids (no name/phone/church per
-// attendee of every retreat) and notes are left out. Open one retreat via
+// attendee of every retreat) and notes are left out (only a `hasNotes` flag). Open one retreat via
 // /api/retreats/:id to get its full details.
 export async function GET(req: NextRequest) {
   try {
@@ -16,12 +17,18 @@ export async function GET(req: NextRequest) {
     if (!(await getAuthUser(req))) return NextResponse.json({ message: 'لازم تسجل دخول الأول' }, { status: 401 })
 
     if (new URL(req.url).searchParams.get('view') === 'light') {
-      const retreats = await Retreat.find()
-        .sort({ startDate: -1, createdAt: -1 })
-        .select('-notes')
-        .populate({ path: 'servants', select: 'name email role', strictPopulate: false })
-        .lean()
-      return NextResponse.json({ retreats })
+      const [retreats, noted] = await Promise.all([
+        Retreat.find()
+          .sort({ startDate: -1, createdAt: -1 })
+          .select('-notes')
+          .populate({ path: 'servants', select: 'name email role', strictPopulate: false })
+          .lean<any[]>(),
+        idsWithNotes('retreatId'),
+      ])
+      // hasNotes lights up the notes icon without shipping the notes themselves
+      return NextResponse.json({
+        retreats: retreats.map((r) => ({ ...r, hasNotes: noted.has(r._id.toString()) })),
+      })
     }
 
     const retreats = await Retreat.find()

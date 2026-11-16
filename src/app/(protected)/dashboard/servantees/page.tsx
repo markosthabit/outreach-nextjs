@@ -43,6 +43,8 @@ interface Servantee {
   year: string
   isActive: boolean
   notes: string[]
+  /** At least one note is written on this servantee (computed on the server). */
+  hasNotes?: boolean
   /** No retreat in the last 3 months (computed on the server). */
   isInactive?: boolean
   hasBirthdayThisMonth?: boolean
@@ -709,7 +711,7 @@ export default function ServanteesPage() {
             <col className="w-[18%]" />
             <col className="w-[96px]" />
             <col className="w-[150px]" />
-            <col className={isAdmin ? 'w-[150px]' : 'w-[84px]'} />
+            <col className={isAdmin ? 'w-[150px]' : 'w-[118px]'} />
           </colgroup>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40 text-xs">
@@ -818,10 +820,11 @@ export default function ServanteesPage() {
                         onOutreachChanged={fetchServantees}
                         compact
                       />
-                      <NotesButton entityId={s._id} entityType="servantee" compact />
+                      <NotesButton entityId={s._id} entityType="servantee" entityName={s.name} hasNotes={s.hasNotes} compact />
+                      {/* Any servant can edit a servantee's details; deleting stays admin-only */}
+                      <EditServanteeDialog servantee={s} onUpdated={fetchServantees} compact />
                       {isAdmin && (
                         <>
-                          <EditServanteeDialog servantee={s} onUpdated={fetchServantees} compact />
                           <ConfirmDeleteDialog
                             onConfirm={() => handleDelete(s._id)}
                             title="تمسح المخدوم؟"
@@ -918,10 +921,10 @@ export default function ServanteesPage() {
 
               <div className="flex gap-2 flex-wrap pt-1 border-t">
                 <ServanteeDetailsDialog servanteeId={s._id} servanteeName={s.name} onOutreachChanged={fetchServantees} />
-                <NotesButton entityId={s._id} entityType="servantee" />
+                <NotesButton entityId={s._id} entityType="servantee" entityName={s.name} hasNotes={s.hasNotes} />
+                <EditServanteeDialog servantee={s} onUpdated={fetchServantees} />
                 {isAdmin && (
                   <>
-                    <EditServanteeDialog servantee={s} onUpdated={fetchServantees} />
                     <ConfirmDeleteDialog
                       onConfirm={() => handleDelete(s._id)}
                       title="تمسح المخدوم؟"

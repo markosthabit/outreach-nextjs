@@ -4,6 +4,7 @@ import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { getAuthUser } from '@/lib/auth-helpers'
 import { isValidObjectId, jsonError } from '@/lib/api-utils'
 import { withDeletedUserNames } from '@/lib/outreach-summary'
+import { idsWithNotes } from '@/lib/notes-flags'
 
 const MAX_NOTE_LENGTH = 2000
 
@@ -49,10 +50,15 @@ export async function PATCH(
     await assignment.save()
 
     const populated = await OutreachAssignment.findById(assignment._id)
-      .populate('servanteeId', 'name phone church diocese education year birthDate notes')
+      .populate('servanteeId', 'name phone church diocese education year birthDate')
       .populate('servantId', 'name email')
       .populate('calledBy', 'name email')
       .lean<any>()
+
+    if (populated?.servanteeId?._id) {
+      const noted = await idsWithNotes('servanteeId', [populated.servanteeId._id])
+      populated.servanteeId.hasNotes = noted.size > 0
+    }
 
     return NextResponse.json({ assignment: populated && withDeletedUserNames(populated) })
   } catch (error) {

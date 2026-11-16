@@ -1,4 +1,5 @@
 import { OutreachCycle } from '@/models/outreach-cycle.model'
+import { OutreachRound } from '@/models/outreach-round.model'
 
 /** Fields to populate on an assignment before passing it to `toOutreachSummary`. */
 export const OUTREACH_SUMMARY_POPULATE = [
@@ -24,6 +25,26 @@ export async function getCurrentOutreachCycle(): Promise<any | null> {
     (await OutreachCycle.findOne({ status: 'active' }).select('name status').lean()) ||
     (await OutreachCycle.findOne().sort({ createdAt: -1 }).select('name status').lean())
   )
+}
+
+/**
+ * The round a servant is working on right now: the newest active round of the
+ * active cycle (falling back to that cycle's newest round). Null when no cycle
+ * is active or it has no rounds yet.
+ */
+export async function getCurrentOutreachRound(): Promise<{ cycle: any; round: any } | null> {
+  const cycle = await OutreachCycle.findOne({ status: 'active' }).select('name status').lean<any>()
+  if (!cycle) return null
+  const round =
+    (await OutreachRound.findOne({ cycleId: cycle._id, status: 'active' })
+      .sort({ createdAt: -1 })
+      .select('name status startDate endDate')
+      .lean<any>()) ||
+    (await OutreachRound.findOne({ cycleId: cycle._id })
+      .sort({ createdAt: -1 })
+      .select('name status startDate endDate')
+      .lean<any>())
+  return round ? { cycle, round } : null
 }
 
 const person = (u: any) =>

@@ -770,6 +770,7 @@ export default function OutreachPage() {
           activeRound={selectedRound}
           activeCycle={activeCycle}
           onAssignmentChange={handleServantAssignmentChange}
+          onServanteeUpdated={fetchServantAssignments}
         />
       )}
 
@@ -823,6 +824,7 @@ export default function OutreachPage() {
           roundName={selectedRound?.name}
           onToggleAssignment={handleAdminToggleAssignment}
           onRemoveAssignment={handleRemoveAssignment}
+          onServanteeUpdated={fetchReport}
         />
       )}
     </div>

@@ -4,6 +4,8 @@ import { User } from '@/models/user.model'
 import { OutreachAssignment } from '@/models/outreach-assignment.model'
 import { OutreachCycle } from '@/models/outreach-cycle.model'
 import { OutreachRound } from '@/models/outreach-round.model'
+import { Note } from '@/models/note.model'
+import { idsWithNotes } from '@/lib/notes-flags'
 import {
   buildClusteredOptions,
   computeLetterCounts,
@@ -32,6 +34,8 @@ export interface ServanteeListRow {
   /** Start of the latest retreat attended (ms), or null if none. */
   lastRetreatAt: number | null
   outreach: ReturnType<typeof toOutreachSummary> | null
+  /** At least one note is written on this servantee. */
+  hasNotes: boolean
 }
 
 export interface ServanteeListBase {
@@ -50,11 +54,11 @@ let cached: { fingerprint: string; base: ServanteeListBase } | null = null
  * A cheap signature of everything the servantees list is built from: document
  * count and newest `updatedAt` of each collection involved. Any create, update
  * or delete changes it, so the cache is never stale — on any server instance —
- * while an unchanged database costs six tiny queries instead of loading every
+ * while an unchanged database costs seven tiny queries instead of loading every
  * servantee, retreat and assignment again.
  */
 async function fingerprint(): Promise<string> {
-  const models = [Servantee, Retreat, OutreachAssignment, OutreachCycle, OutreachRound, User]
+  const models = [Servantee, Retreat, OutreachAssignment, OutreachCycle, OutreachRound, User, Note]
   const parts = await Promise.all(
     models.map(async (model) => {
       const [r] = await model.aggregate([{ $group: { _id: null, n: { $sum: 1 }, m: { $max: '$updatedAt' } } }])
@@ -65,10 +69,11 @@ async function fingerprint(): Promise<string> {
 }
 
 async function load(): Promise<ServanteeListBase> {
-  const [servantees, retreats, outreachCycle] = await Promise.all([
+  const [servantees, retreats, outreachCycle, noted] = await Promise.all([
     Servantee.find().select(LIST_FIELDS).lean<any[]>(),
     Retreat.find().select('startDate attendees').lean<any[]>(),
     getCurrentOutreachCycle(),
+    idsWithNotes('servanteeId'),
   ])
 
   const lastRetreatAt = new Map<string, number>()
@@ -96,6 +101,7 @@ async function load(): Promise<ServanteeListBase> {
       _id: id,
       lastRetreatAt: lastRetreatAt.get(id) ?? null,
       outreach: outreachByServantee.get(id) || null,
+      hasNotes: noted.has(id),
     }
   })
 

@@ -20,6 +20,7 @@ import { findSimilarNames } from '@/lib/arabic-search'
 import { toast } from 'sonner'
 import { UserPlus, Users, UserCheck, AlertCircle, Church, GraduationCap } from 'lucide-react'
 import { FuzzyAutocompleteInput } from '@/components/shared/fuzzy-autocomplete-input'
+import { BirthDateInput, BIRTH_DATE_ERROR, birthDateTextToIso } from '@/components/shared/birth-date-input'
 import {
   buildClusteredOptions,
   normalizeChurchName,
@@ -30,7 +31,8 @@ const servanteeSchema = z.object({
   name: z.string().min(1, 'اكتب الاسم'),
   phone: z.string().optional(),
   diocese: z.string().optional(),
-  birthDate: z.string().optional(),
+  // Typed as day/month/year; converted to YYYY-MM-DD on submit
+  birthDate: z.string().optional().refine((v) => birthDateTextToIso(v) !== null, BIRTH_DATE_ERROR),
   church: z.string().optional(),
   education: z.string().optional(),
   year: z.string().optional(),
@@ -136,7 +138,7 @@ export function AddServanteeDialog({
       setLoading(true)
       const res = await apiFetch<{ servantee: ServanteeResponse }>('/api/servantees', {
         method: 'POST',
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, birthDate: birthDateTextToIso(values.birthDate) ?? '' }),
       })
       toast.success('المخدوم اتضاف ✅', {
         description: `الإسم: ${values.name}`,
@@ -210,12 +212,15 @@ export function AddServanteeDialog({
                     labelTitle="الكليات اللي متسجلة أكتر"
                     className="mt-1"
                   />
-                ) : (
-                  <Input
-                    type={key === 'birthDate' ? 'date' : 'text'}
+                ) : key === 'birthDate' ? (
+                  <BirthDateInput
+                    id="birthDate"
+                    value={form.watch('birthDate') || ''}
+                    onChange={(val) => form.setValue('birthDate', val, { shouldValidate: form.formState.isSubmitted, shouldDirty: true })}
                     className="mt-1"
-                    {...form.register(key)}
                   />
+                ) : (
+                  <Input type="text" className="mt-1" {...form.register(key)} />
                 )}
 
                 {form.formState.errors[key] && (

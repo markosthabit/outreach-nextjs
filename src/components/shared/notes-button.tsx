@@ -11,6 +11,7 @@ import { apiFetch } from '@/lib/api';
 import { ConfirmDeleteDialog } from './delete-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface Note {
   _id: string;
@@ -24,6 +25,14 @@ interface NotesButtonProps {
   entityType: 'servantee' | 'retreat'; // singular — used for body key
   /** Icon-only trigger, for dense table rows. */
   compact?: boolean;
+  /** Whether notes already exist (from the list API) — shows a dot on the trigger. */
+  hasNotes?: boolean;
+  /** Shown in the dialog title and the trigger's tooltip. */
+  entityName?: string;
+  /** Icon-only trigger style: borderless (tables) or outlined (cards). */
+  iconVariant?: 'ghost' | 'outline';
+  /** Extra classes for the trigger button. */
+  className?: string;
 }
 
 // Maps entityType to its API path segment (plural) and body key (singular)
@@ -32,7 +41,15 @@ const ENTITY_MAP = {
   retreat:   { path: 'retreats',   bodyKey: 'retreatId'   },
 } as const
 
-export default function NotesButton({ entityId, entityType, compact = false }: NotesButtonProps) {
+export default function NotesButton({
+  entityId,
+  entityType,
+  compact = false,
+  hasNotes = false,
+  entityName,
+  iconVariant = 'ghost',
+  className,
+}: NotesButtonProps) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin'; // deleting is admin-only (enforced by the API too)
   const [open, setOpen] = useState(false);
@@ -41,6 +58,11 @@ export default function NotesButton({ entityId, entityType, compact = false }: N
   const [newNote, setNewNote] = useState('');
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [editedContent, setEditedContent] = useState('');
+  // Once the notes have been loaded here, that is fresher than the list's flag
+  const [loadedHasNotes, setLoadedHasNotes] = useState<boolean | null>(null);
+  const showIndicator = loadedHasNotes ?? hasNotes;
+  const label = entityName ? `ملاحظات ${entityName}` : 'ملاحظات';
+  const triggerTitle = showIndicator ? `${label} (فيه ملاحظات مكتوبة)` : label;
 
   const { path, bodyKey } = ENTITY_MAP[entityType]
 
@@ -52,6 +74,7 @@ export default function NotesButton({ entityId, entityType, compact = false }: N
         `/api/notes/${path}/${entityId}`
       );
       setNotes(res.notes ?? []);
+      setLoadedHasNotes((res.notes ?? []).length > 0);
     } catch (err) {
       console.error('Failed to load notes', err);
     } finally {
@@ -83,7 +106,9 @@ export default function NotesButton({ entityId, entityType, compact = false }: N
   async function handleDelete(id: string) {
     try {
       await apiFetch(`/api/notes/${id}`, { method: 'DELETE' });
-      setNotes((prev) => prev.filter((n) => n._id !== id));
+      const remaining = notes.filter((n) => n._id !== id);
+      setNotes(remaining);
+      setLoadedHasNotes(remaining.length > 0);
     } catch (err: any) {
       console.error('Delete note failed', err);
       toast.error(err?.message || 'معرفناش نمسح الملاحظة');
@@ -108,25 +133,43 @@ export default function NotesButton({ entityId, entityType, compact = false }: N
     <>
       {compact ? (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          variant={iconVariant}
+          size={iconVariant === 'outline' ? 'icon' : 'icon-sm'}
           onClick={() => setOpen(true)}
-          className="text-muted-foreground hover:text-foreground"
-          title="ملاحظات"
-          aria-label="ملاحظات"
+          className={cn(
+            'relative',
+            showIndicator
+              ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300'
+              : 'text-muted-foreground hover:text-foreground',
+            showIndicator && iconVariant === 'outline' && 'border-amber-500/40',
+            className
+          )}
+          title={triggerTitle}
+          aria-label={triggerTitle}
         >
           <StickyNote className="h-4 w-4" />
+          {showIndicator && <NotesDot />}
         </Button>
       ) : (
-        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen(true)}
+          className={cn('relative gap-1.5', showIndicator && 'border-amber-500/40', className)}
+          title={triggerTitle}
+        >
+          <StickyNote
+            className={cn('h-3.5 w-3.5', showIndicator ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}
+          />
           ملاحظات
+          {showIndicator && <NotesDot />}
         </Button>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg" dir="rtl">
           <DialogHeader>
-            <DialogTitle>ملاحظات</DialogTitle>
+            <DialogTitle>{label}</DialogTitle>
           </DialogHeader>
 
           {loading ? (
@@ -209,5 +252,15 @@ export default function NotesButton({ entityId, entityType, compact = false }: N
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** The "there are notes here" dot on the corner of the trigger. */
+function NotesDot() {
+  return (
+    <span
+      aria-hidden
+      className="absolute -top-1 -right-1 size-2.5 rounded-full bg-amber-500 ring-2 ring-background"
+    />
   );
 }

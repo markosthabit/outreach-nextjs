@@ -19,6 +19,13 @@ import { toast } from 'sonner'
 import { Pencil, Church, GraduationCap } from 'lucide-react'
 import { FuzzyAutocompleteInput } from '@/components/shared/fuzzy-autocomplete-input'
 import {
+  BirthDateInput,
+  BIRTH_DATE_ERROR,
+  birthDateTextToIso,
+  birthDateToText,
+} from '@/components/shared/birth-date-input'
+import { cn } from '@/lib/utils'
+import {
   buildClusteredOptions,
   normalizeChurchName,
   normalizeCollegeName,
@@ -28,7 +35,8 @@ const servanteeSchema = z.object({
   name: z.string().min(1, 'اكتب الاسم'),
   phone: z.string().optional(),
   diocese: z.string().optional(),
-  birthDate: z.string().optional(),
+  // Typed as day/month/year; converted to YYYY-MM-DD on submit
+  birthDate: z.string().optional().refine((v) => birthDateTextToIso(v) !== null, BIRTH_DATE_ERROR),
   church: z.string().optional(),
   education: z.string().optional(),
   year: z.string().optional(),
@@ -50,28 +58,39 @@ export function EditServanteeDialog({
   servantee,
   onUpdated,
   compact = false,
+  className,
 }: {
   servantee: any
   onUpdated: () => void
   /** Subdued icon trigger, for dense table rows. */
   compact?: boolean
+  /** Extra classes for the trigger button. */
+  className?: string
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [existingServantees, setExistingServantees] = useState<any[]>([])
 
+  const currentValues = (): ServanteeFormData => ({
+    name: servantee.name ?? '',
+    phone: servantee.phone ?? '',
+    diocese: servantee.diocese ?? '',
+    birthDate: birthDateToText(servantee.birthDate),
+    church: servantee.church ?? '',
+    education: servantee.education ?? '',
+    year: servantee.year ?? '',
+  })
+
   const form = useForm<ServanteeFormData>({
     resolver: zodResolver(servanteeSchema),
-    defaultValues: {
-      name: servantee.name ?? '',
-      phone: servantee.phone ?? '',
-      diocese: servantee.diocese ?? '',
-      birthDate: servantee.birthDate ? new Date(servantee.birthDate).toISOString().split('T')[0] : '',
-      church: servantee.church ?? '',
-      education: servantee.education ?? '',
-      year: servantee.year ?? '',
-    },
+    defaultValues: currentValues(),
   })
+
+  // Always start from the saved data (not a previous, cancelled edit)
+  const handleOpenChange = (next: boolean) => {
+    if (next) form.reset(currentValues())
+    setOpen(next)
+  }
 
   // Load existing servantees for suggestions
   useEffect(() => {
@@ -97,7 +116,7 @@ export function EditServanteeDialog({
       setLoading(true)
       await apiFetch(`/api/servantees/${servantee._id}`, {
         method: 'PATCH',
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, birthDate: birthDateTextToIso(values.birthDate) ?? '' }),
       })
       toast.success('بيانات المخدوم اتحدثت')
       onUpdated()
@@ -114,12 +133,12 @@ export function EditServanteeDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           variant={compact ? 'ghost' : 'outline'}
           size={compact ? 'icon-sm' : 'icon'}
-          className={compact ? 'text-muted-foreground hover:text-foreground' : undefined}
+          className={cn(compact && 'text-muted-foreground hover:text-foreground', className)}
           title="عدّل"
           aria-label="عدّل بيانات المخدوم"
         >
@@ -167,8 +186,20 @@ export function EditServanteeDialog({
                     labelTitle="كليات مقترحة"
                     className="mt-1"
                   />
+                ) : key === 'birthDate' ? (
+                  <BirthDateInput
+                    id="edit-birthDate"
+                    value={form.watch('birthDate') || ''}
+                    onChange={(val) => form.setValue('birthDate', val, { shouldValidate: form.formState.isSubmitted, shouldDirty: true })}
+                    className="mt-1"
+                  />
                 ) : (
-                  <Input type={key === 'birthDate' ? 'date' : 'text'} className="mt-1" {...form.register(key)} />
+                  <Input
+                    type={key === 'phone' ? 'tel' : 'text'}
+                    dir={key === 'phone' ? 'ltr' : undefined}
+                    className={cn('mt-1', key === 'phone' && 'text-right')}
+                    {...form.register(key)}
+                  />
                 )}
 
                 {form.formState.errors[key] && (

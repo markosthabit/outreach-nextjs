@@ -35,6 +35,8 @@ import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api'
 import { matchesArabic } from '@/lib/arabic-search'
 import { formatDate, formatDateTime, telHref, whatsappHref } from './outreach-utils'
+import NotesButton from '@/components/shared/notes-button'
+import { EditServanteeDialog } from '../../servantees/edit-servantee-dialog'
 
 const MAX_NOTE_LENGTH = 2000
 
@@ -45,6 +47,8 @@ interface ServantCallingViewProps {
   activeCycle: any | null
   /** Called with the server's updated assignment so the parent can patch it in place. */
   onAssignmentChange: (updated: any) => void
+  /** Called after a servantee's details were edited, so the cards can reload. */
+  onServanteeUpdated: () => void
 }
 
 export function ServantCallingView({
@@ -53,6 +57,7 @@ export function ServantCallingView({
   activeRound,
   activeCycle,
   onAssignmentChange,
+  onServanteeUpdated,
 }: ServantCallingViewProps) {
   const [filterMode, setFilterMode] = useState<'all' | 'called' | 'notCalled'>('all')
   const [searchTerm, setSearchTerm] = useState('')
@@ -335,7 +340,7 @@ export function ServantCallingView({
                     </button>
                   )}
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {tel && (
                       <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs font-semibold h-10 sm:h-9" asChild>
                         <a href={tel}>
@@ -364,11 +369,30 @@ export function ServantCallingView({
                         assignment.notes ? 'text-primary border-primary/30' : 'text-muted-foreground'
                       )}
                       onClick={() => openNoteDialog(assignment)}
-                      aria-label={assignment.notes ? 'عدّل الملاحظة' : 'ضيف ملاحظة'}
-                      title={assignment.notes ? 'عدّل الملاحظة' : 'ضيف ملاحظة'}
+                      aria-label={assignment.notes ? 'عدّل ملاحظة الافتقاد' : 'ضيف ملاحظة افتقاد'}
+                      title={assignment.notes ? 'عدّل ملاحظة الافتقاد' : 'ضيف ملاحظة افتقاد'}
                     >
                       <MessageSquare className="h-4 w-4" />
                     </Button>
+                    {s?._id && (
+                      <>
+                        {/* The servantee's own notes (shared with the servantees screen) */}
+                        <NotesButton
+                          entityId={s._id}
+                          entityType="servantee"
+                          entityName={s.name}
+                          hasNotes={s.hasNotes}
+                          compact
+                          iconVariant="outline"
+                          className="h-10 w-10 sm:h-9 sm:w-9 shrink-0"
+                        />
+                        <EditServanteeDialog
+                          servantee={s}
+                          onUpdated={onServanteeUpdated}
+                          className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 text-muted-foreground"
+                        />
+                      </>
+                    )}
                   </div>
 
                   <Button
