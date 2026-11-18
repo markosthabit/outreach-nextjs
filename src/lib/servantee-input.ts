@@ -11,6 +11,7 @@ export type ServanteeInput = {
   year?: string | null
   birthDate?: Date | null
   isActive?: boolean
+  isPending?: boolean
 }
 
 /** Excel stores dates as serial day numbers counted from 1899-12-30. */
@@ -71,6 +72,11 @@ export function parseServanteeInput(
   if (body.isActive !== undefined) {
     if (typeof body.isActive !== 'boolean') return { error: 'قيمة الحالة غلط' }
     data.isActive = body.isActive
+  }
+
+  if (body.isPending !== undefined) {
+    if (typeof body.isPending !== 'boolean') return { error: 'قيمة الحالة غلط' }
+    data.isPending = body.isPending
   }
 
   return { data }

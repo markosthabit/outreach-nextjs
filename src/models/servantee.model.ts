@@ -12,6 +12,8 @@ export interface IServantee {
   notes?: Types.ObjectId[];
   retreats?: Types.ObjectId[];
   isActive: boolean;
+  /** "معلق": phone number or details were found changed during outreach and need review. */
+  isPending?: boolean;
   createdBy?: Types.ObjectId;
   updatedBy?: Types.ObjectId;
 }
@@ -31,6 +33,7 @@ const ServanteeSchema = new Schema<IServantee>(
     notes: [{ type: Types.ObjectId, ref: 'Note' }],
     retreats: [{ type: Types.ObjectId, ref: 'Retreat', default: [] }],
     isActive: { type: Boolean, default: true },
+    isPending: { type: Boolean, default: false },
     createdBy: { type: Types.ObjectId, ref: 'User', required: false },
     updatedBy: { type: Types.ObjectId, ref: 'User', required: false },
   },

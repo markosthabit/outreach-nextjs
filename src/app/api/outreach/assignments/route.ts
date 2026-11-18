@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     }
 
     const assignments = await OutreachAssignment.find(query)
-      .populate('servanteeId', 'name phone church diocese education year birthDate')
+      .populate('servanteeId', 'name phone church diocese education year birthDate isPending')
       .populate('servantId', 'name email')
       .populate('calledBy', 'name email')
       .lean<any[]>()

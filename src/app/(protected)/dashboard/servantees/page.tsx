@@ -22,9 +22,10 @@ import { EditServanteeDialog } from './edit-servantee-dialog'
 import { ConfirmDeleteDialog } from '@/components/shared/delete-dialog'
 import ServanteeDetailsDialog from './servantee-details-dialog'
 import NotesButton from '@/components/shared/notes-button'
+import { PendingBadge, PendingButton } from '@/components/shared/pending-button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDebounce } from '@/hooks/use-debounce'
-import { Users, Search, ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, UserMinus, Gift, Church, GraduationCap, RotateCcw, X, SlidersHorizontal, PhoneCall, PhoneOff, CheckCircle2, Loader2 } from 'lucide-react'
+import { Users, Search, ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, UserMinus, Gift, Church, GraduationCap, RotateCcw, X, SlidersHorizontal, PhoneCall, PhoneOff, CheckCircle2, Loader2, Hourglass } from 'lucide-react'
 import { IconBrandWhatsapp } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { AlphabetFilterBar } from '@/components/shared/alphabet-filter-bar'
@@ -42,6 +43,8 @@ interface Servantee {
   work: string
   year: string
   isActive: boolean
+  /** "معلق": phone number or details changed and need review. */
+  isPending?: boolean
   notes: string[]
   /** At least one note is written on this servantee (computed on the server). */
   hasNotes?: boolean
@@ -70,7 +73,7 @@ interface ServanteesPageResponse {
   total: number
   page: number
   totalPages: number
-  counts: { total: number; inactive: number; birthdays: number; contacted: number }
+  counts: { total: number; inactive: number; birthdays: number; contacted: number; pending: number }
   facets: {
     letterCounts: Record<string, number>
     churchOptions: ClusteredFilterOption[]
@@ -79,7 +82,7 @@ interface ServanteesPageResponse {
   outreachCycle: { _id: string; name: string; status: string } | null
 }
 
-const NO_COUNTS = { total: 0, inactive: 0, birthdays: 0, contacted: 0 }
+const NO_COUNTS = { total: 0, inactive: 0, birthdays: 0, contacted: 0, pending: 0 }
 const NO_OPTIONS: ClusteredFilterOption[] = []
 const NO_LETTERS: Record<string, number> = {}
 
@@ -92,6 +95,7 @@ const CHIP_TONES = {
   rose: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-800',
   amber: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-800',
   pink: 'bg-pink-100 text-pink-900 border-pink-300 dark:bg-pink-950 dark:text-pink-200 dark:border-pink-800',
+  orange: 'bg-orange-100 text-orange-900 border-orange-300 dark:bg-orange-950 dark:text-orange-200 dark:border-orange-800',
 } as const
 
 /** Removable chip for the active-filters strip. */
@@ -203,6 +207,7 @@ export default function ServanteesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showOnlyInactive, setShowOnlyInactive] = useState(false)
   const [showBirthdays, setShowBirthdays] = useState(false)
+  const [showPending, setShowPending] = useState(false)
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null)
   const [selectedChurch, setSelectedChurch] = useState<string | null>(null)
   const [selectedCollege, setSelectedCollege] = useState<string | null>(null)
@@ -226,6 +231,7 @@ export default function ServanteesPage() {
     if (q) params.set('q', q)
     if (showOnlyInactive) params.set('view', 'inactive')
     else if (showBirthdays) params.set('view', 'birthdays')
+    else if (showPending) params.set('view', 'pending')
     if (outreachFilter) params.set('outreach', outreachFilter)
     if (selectedLetter) params.set('letter', selectedLetter)
     if (selectedChurch) params.set('church', selectedChurch)
@@ -235,6 +241,7 @@ export default function ServanteesPage() {
     debouncedSearch,
     showOnlyInactive,
     showBirthdays,
+    showPending,
     outreachFilter,
     selectedLetter,
     selectedChurch,
@@ -297,6 +304,7 @@ export default function ServanteesPage() {
     setSelectedCollege(null)
     setShowOnlyInactive(false)
     setShowBirthdays(false)
+    setShowPending(false)
     setOutreachFilter(null)
   }
 
@@ -307,6 +315,7 @@ export default function ServanteesPage() {
       selectedCollege !== null ||
       showOnlyInactive ||
       showBirthdays ||
+      showPending ||
       outreachFilter !== null
   )
 
@@ -329,6 +338,15 @@ export default function ServanteesPage() {
     } catch (err: any) {
       toast.error('حصلت مشكلة وإحنا بنمسح')
     }
+  }
+
+  const handlePendingChanged = (id: string, isPending: boolean) => {
+    // Update the row right away, then refresh so the counter (and the معلقين view) follow
+    setList(
+      (prev) =>
+        prev && { ...prev, servantees: prev.servantees.map((x) => (x._id === id ? { ...x, isPending } : x)) }
+    )
+    fetchServantees()
   }
 
   const canToggleOutreach = (s: Servantee) =>
@@ -430,17 +448,18 @@ export default function ServanteesPage() {
           {/* Quick Views Segmented Tabs & Advanced Filter Toggle */}
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
             {/* Segmented status buttons: 3-col grid on mobile, inline on desktop */}
-            <div className="grid grid-cols-3 sm:inline-flex sm:items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border/50 text-xs">
+            <div className="grid grid-cols-2 sm:inline-flex sm:items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border/50 text-xs">
               <button
                 type="button"
-                aria-pressed={!showOnlyInactive && !showBirthdays}
+                aria-pressed={!showOnlyInactive && !showBirthdays && !showPending}
                 onClick={() => {
                   setShowOnlyInactive(false)
                   setShowBirthdays(false)
+                  setShowPending(false)
                 }}
                 className={cn(
                   'flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-1.5 min-h-12 sm:min-h-0 rounded-lg font-medium transition-all cursor-pointer',
-                  !showOnlyInactive && !showBirthdays
+                  !showOnlyInactive && !showBirthdays && !showPending
                     ? 'bg-background text-foreground shadow-xs font-semibold'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
@@ -455,7 +474,10 @@ export default function ServanteesPage() {
                 aria-pressed={showOnlyInactive}
                 onClick={() => {
                   setShowOnlyInactive((prev) => !prev)
-                  if (!showOnlyInactive) setShowBirthdays(false)
+                  if (!showOnlyInactive) {
+                    setShowBirthdays(false)
+                    setShowPending(false)
+                  }
                 }}
                 className={cn(
                   'flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-1.5 min-h-12 sm:min-h-0 rounded-lg font-medium transition-all cursor-pointer',
@@ -477,7 +499,10 @@ export default function ServanteesPage() {
                 aria-pressed={showBirthdays}
                 onClick={() => {
                   setShowBirthdays((prev) => !prev)
-                  if (!showBirthdays) setShowOnlyInactive(false)
+                  if (!showBirthdays) {
+                    setShowOnlyInactive(false)
+                    setShowPending(false)
+                  }
                 }}
                 className={cn(
                   'flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-1.5 min-h-12 sm:min-h-0 rounded-lg font-medium transition-all cursor-pointer',
@@ -492,6 +517,43 @@ export default function ServanteesPage() {
                 </span>
                 <span className="text-[10px] px-1.5 rounded-full bg-pink-500/15 text-pink-700 dark:text-pink-300 font-semibold">
                   {counts.birthdays}
+                </span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={showPending}
+                title="مخدومين رقمهم أو بياناتهم اتغيرت ومحتاجين مراجعة"
+                onClick={() => {
+                  setShowPending((prev) => !prev)
+                  if (!showPending) {
+                    setShowOnlyInactive(false)
+                    setShowBirthdays(false)
+                  }
+                }}
+                className={cn(
+                  'flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-1.5 min-h-12 sm:min-h-0 rounded-lg font-medium transition-all cursor-pointer',
+                  showPending
+                    ? 'bg-orange-500 text-white shadow-xs font-semibold'
+                    : counts.pending > 0
+                    ? 'text-orange-700 dark:text-orange-300 font-semibold hover:bg-orange-500/10'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                  <Hourglass className="h-3.5 w-3.5 max-[379px]:hidden" />
+                  المعلقين
+                </span>
+                <span
+                  className={cn(
+                    'text-[10px] px-1.5 rounded-full font-semibold',
+                    showPending
+                      ? 'bg-white/25 text-white'
+                      : counts.pending > 0
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-orange-500/15 text-orange-700 dark:text-orange-300'
+                  )}
+                >
+                  {counts.pending}
                 </span>
               </button>
             </div>
@@ -682,6 +744,9 @@ export default function ServanteesPage() {
             {showBirthdays && (
               <FilterChip tone="pink" label="أعياد الميلاد" onRemove={() => setShowBirthdays(false)} />
             )}
+            {showPending && (
+              <FilterChip tone="orange" label="المعلقين" onRemove={() => setShowPending(false)} />
+            )}
             {outreachFilter && (
               <FilterChip
                 tone={outreachFilter === 'contacted' ? 'emerald' : 'rose'}
@@ -711,7 +776,7 @@ export default function ServanteesPage() {
             <col className="w-[18%]" />
             <col className="w-[96px]" />
             <col className="w-[150px]" />
-            <col className={isAdmin ? 'w-[150px]' : 'w-[118px]'} />
+            <col className={isAdmin ? 'w-[184px]' : 'w-[152px]'} />
           </colgroup>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40 text-xs">
@@ -740,13 +805,25 @@ export default function ServanteesPage() {
               </TableRow>
             ) : (
               servantees.map((s) => (
-                <TableRow key={s._id} className="group hover:bg-muted/30">
+                <TableRow
+                  key={s._id}
+                  className={cn(
+                    'group',
+                    s.isPending ? 'bg-orange-500/10 hover:bg-orange-500/15' : 'hover:bg-muted/30'
+                  )}
+                >
                   {/* Who: name + status icons, phone underneath */}
-                  <TableCell className="py-3 pr-5 pl-3 overflow-hidden">
+                  <TableCell
+                    className={cn(
+                      'py-3 pr-4 pl-3 overflow-hidden border-r-4',
+                      s.isPending ? 'border-r-orange-500' : 'border-r-transparent'
+                    )}
+                  >
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="truncate font-semibold text-foreground" title={s.name}>
                         {s.name}
                       </span>
+                      {s.isPending && <PendingBadge />}
                       {s.hasBirthdayThisMonth && (
                         <span title="عيد ميلاده الشهر ده" className="shrink-0 flex items-center">
                           <Gift className="h-3.5 w-3.5 text-pink-500" />
@@ -823,6 +900,13 @@ export default function ServanteesPage() {
                       <NotesButton entityId={s._id} entityType="servantee" entityName={s.name} hasNotes={s.hasNotes} compact />
                       {/* Any servant can edit a servantee's details; deleting stays admin-only */}
                       <EditServanteeDialog servantee={s} onUpdated={fetchServantees} compact />
+                      <PendingButton
+                        servanteeId={s._id}
+                        servanteeName={s.name}
+                        isPending={s.isPending}
+                        onChanged={(next) => handlePendingChanged(s._id, next)}
+                        compact
+                      />
                       {isAdmin && (
                         <>
                           <ConfirmDeleteDialog
@@ -855,11 +939,18 @@ export default function ServanteesPage() {
           <p className="col-span-full text-center text-muted-foreground py-12">مفيش مخدومين</p>
         ) : (
           servantees.map((s) => (
-            <Card key={s._id} className="p-4 gap-0 space-y-3">
+            <Card
+              key={s._id}
+              className={cn(
+                'p-4 gap-0 space-y-3',
+                s.isPending && 'border-2 border-orange-500/60 bg-orange-500/5 dark:bg-orange-950/20'
+              )}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 min-w-0">
                     <p className="font-semibold text-base truncate" title={s.name}>{s.name}</p>
+                    {s.isPending && <PendingBadge />}
                     {s.hasBirthdayThisMonth && (
                       <span title="عيد ميلاده الشهر ده" className="shrink-0 flex items-center">
                         <Gift className="h-4 w-4 text-pink-500" />
@@ -923,6 +1014,12 @@ export default function ServanteesPage() {
                 <ServanteeDetailsDialog servanteeId={s._id} servanteeName={s.name} onOutreachChanged={fetchServantees} />
                 <NotesButton entityId={s._id} entityType="servantee" entityName={s.name} hasNotes={s.hasNotes} />
                 <EditServanteeDialog servantee={s} onUpdated={fetchServantees} />
+                <PendingButton
+                  servanteeId={s._id}
+                  servanteeName={s.name}
+                  isPending={s.isPending}
+                  onChanged={(next) => handlePendingChanged(s._id, next)}
+                />
                 {isAdmin && (
                   <>
                     <ConfirmDeleteDialog

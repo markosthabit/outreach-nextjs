@@ -50,7 +50,7 @@ export async function PATCH(
     await assignment.save()
 
     const populated = await OutreachAssignment.findById(assignment._id)
-      .populate('servanteeId', 'name phone church diocese education year birthDate')
+      .populate('servanteeId', 'name phone church diocese education year birthDate isPending')
       .populate('servantId', 'name email')
       .populate('calledBy', 'name email')
       .lean<any>()

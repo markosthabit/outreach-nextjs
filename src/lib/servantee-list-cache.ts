@@ -19,7 +19,7 @@ import {
   toOutreachSummary,
 } from '@/lib/outreach-summary'
 
-const LIST_FIELDS = 'name phone church diocese education year birthDate isActive'
+const LIST_FIELDS = 'name phone church diocese education year birthDate isActive isPending'
 
 export interface ServanteeListRow {
   _id: string
@@ -31,6 +31,8 @@ export interface ServanteeListRow {
   year?: string
   birthDate?: Date | null
   isActive?: boolean
+  /** "معلق": details need review. */
+  isPending?: boolean
   /** Start of the latest retreat attended (ms), or null if none. */
   lastRetreatAt: number | null
   outreach: ReturnType<typeof toOutreachSummary> | null

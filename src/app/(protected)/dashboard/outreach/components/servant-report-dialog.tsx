@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils'
 import { matchesArabic } from '@/lib/arabic-search'
 import { formatDateTime, telHref, whatsappHref } from './outreach-utils'
 import NotesButton from '@/components/shared/notes-button'
+import { PendingBadge, PendingButton } from '@/components/shared/pending-button'
 import { EditServanteeDialog } from '../../servantees/edit-servantee-dialog'
 
 interface ServantReportDialogProps {
@@ -211,6 +212,7 @@ export function ServantReportDialog({
                                 لسه
                               </Badge>
                             )}
+                            {s?.isPending && <PendingBadge />}
                           </div>
 
                           <div className="flex items-center gap-x-3 gap-y-1 text-xs text-muted-foreground flex-wrap">
@@ -290,6 +292,13 @@ export function ServantReportDialog({
                                 servantee={s}
                                 onUpdated={() => onServanteeUpdated?.()}
                                 className="h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground"
+                              />
+                              <PendingButton
+                                servanteeId={s._id}
+                                servanteeName={s.name}
+                                isPending={s.isPending}
+                                onChanged={() => onServanteeUpdated?.()}
+                                className="h-9 w-9 sm:h-8 sm:w-8"
                               />
                             </>
                           )}

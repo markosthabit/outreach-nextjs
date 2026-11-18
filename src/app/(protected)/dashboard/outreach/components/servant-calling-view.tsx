@@ -36,6 +36,7 @@ import { apiFetch } from '@/lib/api'
 import { matchesArabic } from '@/lib/arabic-search'
 import { formatDate, formatDateTime, telHref, whatsappHref } from './outreach-utils'
 import NotesButton from '@/components/shared/notes-button'
+import { PendingBadge, PendingButton } from '@/components/shared/pending-button'
 import { EditServanteeDialog } from '../../servantees/edit-servantee-dialog'
 
 const MAX_NOTE_LENGTH = 2000
@@ -276,7 +277,9 @@ export function ServantCallingView({
                 key={assignment._id}
                 className={cn(
                   'transition-colors duration-200 border-2 flex flex-col justify-between overflow-hidden shadow-xs py-0 gap-0',
-                  isCalled
+                  s?.isPending
+                    ? 'border-orange-500/60 bg-orange-500/5 dark:bg-orange-950/20'
+                    : isCalled
                     ? 'border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-950/20'
                     : 'border-border bg-card'
                 )}
@@ -299,6 +302,8 @@ export function ServantCallingView({
                       </Badge>
                     )}
                   </div>
+
+                  {s?.isPending && <PendingBadge />}
 
                   <div className="space-y-1 text-xs text-muted-foreground">
                     {s?.phone && (
@@ -390,6 +395,16 @@ export function ServantCallingView({
                           servantee={s}
                           onUpdated={onServanteeUpdated}
                           className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 text-muted-foreground"
+                        />
+                        {/* Phone number / details changed: flag for review on the servantees screen */}
+                        <PendingButton
+                          servanteeId={s._id}
+                          servanteeName={s.name}
+                          isPending={s.isPending}
+                          onChanged={(next) =>
+                            onAssignmentChange({ ...assignment, servanteeId: { ...s, isPending: next } })
+                          }
+                          className="h-10 w-10 sm:h-9 sm:w-9 shrink-0"
                         />
                       </>
                     )}

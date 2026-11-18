@@ -10,7 +10,7 @@ import { getInitialLetter, normalizeChurchName, normalizeCollegeName } from '@/l
 import { getServanteeListBase } from '@/lib/servantee-list-cache'
 import { idsWithNotes } from '@/lib/notes-flags'
 
-const LIST_FIELDS = 'name phone church diocese education year birthDate isActive'
+const LIST_FIELDS = 'name phone church diocese education year birthDate isActive isPending'
 
 // GET /api/servantees
 //
@@ -18,7 +18,7 @@ const LIST_FIELDS = 'name phone church diocese education year birthDate isActive
 // - ?view=basic            every servantee, core fields only (pickers, duplicate checks, exports)
 // - (no params)            every servantee + the retreats each attended (id/name/dates only)
 // - ?page=1&limit=10&...   one page of the servantees screen, filtered on the server:
-//     q, letter, church, college, view=inactive|birthdays, outreach=contacted|notContacted, tz
+//     q, letter, church, college, view=inactive|birthdays|pending, outreach=contacted|notContacted, tz
 //   plus the counters and filter options the screen needs, so it never downloads the full list.
 export async function GET(req: NextRequest) {
   try {
@@ -100,12 +100,14 @@ async function pagedList(searchParams: URLSearchParams) {
     inactive: rows.filter((r) => r.isInactive).length,
     birthdays: rows.filter((r) => r.hasBirthdayThisMonth).length,
     contacted: rows.filter((r) => r.outreach?.isCalled).length,
+    pending: rows.filter((r) => r.isPending).length,
   }
 
   let result = rows
   const view = searchParams.get('view')
   if (view === 'inactive') result = result.filter((r) => r.isInactive)
   if (view === 'birthdays') result = result.filter((r) => r.hasBirthdayThisMonth)
+  if (view === 'pending') result = result.filter((r) => r.isPending)
 
   const outreach = searchParams.get('outreach')
   if (outreach === 'contacted' || outreach === 'notContacted') {
